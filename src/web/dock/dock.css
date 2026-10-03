@@ -435,6 +435,8 @@ input[type='range'] {
 }
 
 kbd {
+  display: inline-block;
+  white-space: nowrap;
   padding: 1px 6px;
   border: 1px solid var(--fw-line);
   border-radius: 4px;

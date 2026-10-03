@@ -109,6 +109,13 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
             </option>
           ))}
         </select>
+        <p class="hint">
+          Wheel id <kbd>{wheel.id}</kbd> for{' '}
+          <kbd>
+            {config.settings.twitch.spinCommand} @viewer [spins] {wheel.id}
+          </kbd>{' '}
+          and the API.
+        </p>
         <div class="grid">
           <Field label="Name">
             <input

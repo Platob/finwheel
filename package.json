@@ -16,7 +16,7 @@
     "finwheel": "dist/node/server/index.js"
   },
   "engines": {
-    "node": ">=20.12"
+    "node": ">=22.13"
   },
   "scripts": {
     "dev": "concurrently -k -n server,web -c yellow,magenta \"npm:dev:server\" \"npm:dev:web\"",

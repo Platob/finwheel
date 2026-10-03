@@ -93,7 +93,7 @@ export function SettingsTab({
           onChange={(v) => set((s) => (s.twitch.announceResults = v))}
         />
         <p class="hint">
-          Moderators can type <kbd>{draft.twitch.spinCommand} @viewer [wheel-id]</kbd> and{' '}
+          Moderators can type <kbd>{draft.twitch.spinCommand} @viewer [spins] [wheel-id]</kbd> and{' '}
           <kbd>!raffle open|close|draw</kbd>.
         </p>
 
@@ -340,8 +340,7 @@ export function SettingsTab({
           </div>
         ))}
         <p class="hint">
-          Browser Source: 1080 × 1080, tick “Control audio via OBS”. Dock: View → Docks → Custom Browser
-          Docks.
+          Browser Source: 1080 × 1080, tick “Control audio via OBS”. Dock: Docks → Custom Browser Docks.
         </p>
       </Section>
 
