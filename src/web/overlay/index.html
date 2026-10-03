@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FinWheel Overlay</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <main class="stage" id="stage">
+      <div class="wheel-group">
+        <canvas class="wheel" id="wheel"></canvas>
+
+        <div class="sign plaque" id="plaque">
+          <div class="sign-inner">
+            <div class="plaque-title" id="plaque-title"></div>
+            <div class="plaque-sub" id="plaque-sub"></div>
+          </div>
+        </div>
+
+        <section class="result" id="result" aria-live="polite">
+          <div class="result-eyebrow" id="result-eyebrow"></div>
+          <div class="result-player" id="result-player"></div>
+          <div class="result-rule"><span></span><i></i><span></span></div>
+          <div class="result-prize" id="result-prize"></div>
+          <div class="result-desc" id="result-desc"></div>
+          <div class="result-bank" id="result-bank"></div>
+          <div class="result-next" id="result-next"></div>
+        </section>
+
+        <section class="result total" id="total" aria-live="polite">
+          <div class="result-eyebrow" id="total-eyebrow">Total winnings</div>
+          <div class="result-player" id="total-player"></div>
+          <div class="result-rule"><span></span><i></i><span></span></div>
+          <div class="total-amount" id="total-amount"></div>
+          <ol class="total-log" id="total-log"></ol>
+          <div class="result-next" id="total-foot"></div>
+        </section>
+      </div>
+
+      <div class="sign badge badge--bank" id="bank">
+        <div class="sign-inner">
+          <div class="badge-eyebrow" id="bank-eyebrow">Bank</div>
+          <div class="badge-value" id="bank-value">$0</div>
+        </div>
+      </div>
+
+      <div class="sign badge badge--raffle" id="raffle">
+        <div class="sign-inner">
+          <div class="badge-eyebrow"><span class="live-dot"></span>Raffle open</div>
+          <div class="badge-value">
+            <span id="raffle-keyword">!join</span> <small id="raffle-count"></small>
+          </div>
+        </div>
+      </div>
+    </main>
+    <canvas class="fx" id="fx"></canvas>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

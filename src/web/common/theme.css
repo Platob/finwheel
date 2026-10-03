@@ -1,0 +1,46 @@
+/* FinWheel — "modern classy casino" design tokens shared by the overlay and the dock. */
+:root {
+  --fw-noir: #09090c;
+  --fw-onyx: #14141a;
+  --fw-onyx-2: #1c1c24;
+  --fw-onyx-3: #262630;
+  --fw-felt: #0f5a44;
+  --fw-felt-deep: #06291f;
+  --fw-bordeaux: #7c1631;
+  --fw-ruby: #d0123f;
+  --fw-sapphire: #1d4f99;
+  --fw-amethyst: #6d2a9b;
+  --fw-gold: #d4af37;
+  --fw-gold-light: #f3dc8a;
+  --fw-gold-pale: #fff3c4;
+  --fw-gold-deep: #8f6a1c;
+  --fw-ivory: #f5eedc;
+  --fw-muted: #9d9480;
+  --fw-line: rgba(212, 175, 55, 0.28);
+
+  --fw-gold-gradient: linear-gradient(
+    135deg,
+    #8f6a1c 0%,
+    #f3dc8a 24%,
+    #b8892a 46%,
+    #fff3c4 64%,
+    #a57b22 82%,
+    #e9c766 100%
+  );
+  --fw-gold-text: linear-gradient(180deg, #fff6d0 0%, #f3dc8a 38%, #c99a35 62%, #f6e3a1 100%);
+
+  --fw-font-display: 'Cinzel', 'Trajan Pro', 'Times New Roman', serif;
+  --fw-font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --fw-tier-common: #c9b37e;
+  --fw-tier-rare: #5b8def;
+  --fw-tier-epic: #b06ae0;
+  --fw-tier-legendary: #f0c75e;
+  --fw-tier-jackpot: #ffd86b;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
