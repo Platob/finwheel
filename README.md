@@ -28,31 +28,127 @@ rendered as a transparent browser-source overlay and driven from an OBS dock.
 - **Twitch integration.** Chat commands, channel-point rewards, bit cheers, optional chat announcements.
 - **OBS integration.** Browser source + custom dock, plus a Python script that adds OBS hotkeys.
 
-## Quick start
+## Setup: OBS + Twitch in 10 minutes
 
-Requires Node.js 20.12 or newer.
+You need [Node.js](https://nodejs.org) 20.12+ (LTS), [git](https://git-scm.com) and OBS Studio 30+.
+
+### 1. Start the server
 
 ```bash
+git clone https://github.com/Platob/finwheel.git
+cd finwheel
 npm install
 npm run build
 npm start
 ```
 
-The server prints its URLs (default port `4747`):
+Keep this terminal open while you stream. Check it from a second terminal:
 
-| What           | URL                              | In OBS                                                        |
-| -------------- | -------------------------------- | ------------------------------------------------------------- |
-| Overlay        | `http://localhost:4747/overlay/` | **Browser Source**, 1080 × 1080, tick _Control audio via OBS_ |
-| Control dock   | `http://localhost:4747/dock/`    | **View → Docks → Custom Browser Docks**                       |
-| Preview in tab | `…/overlay/?preview`             | Adds a felt background for testing in a normal browser        |
+```bash
+curl http://localhost:4747/api/health
+# {"ok":true,"name":"finwheel","version":"0.1.0"}
+```
 
-Overlay URL options: `?preview` (felt background), `?mute=1` (no sound for this source).
+### 2. Add the wheel to a scene
 
-### Hotkeys (optional)
+In OBS: **Sources → + → Browser**, name it `FinWheel`, then set:
 
-In OBS: **Tools → Scripts → Python Settings** (point it at a Python 3 install), then add
-[`obs/finwheel_hotkeys.py`](obs/finwheel_hotkeys.py). Bind the _FinWheel_ actions in **Settings → Hotkeys**:
-spin, spin next in queue, dismiss result, open / close / draw the raffle, show / hide the overlay.
+| Field                     | Value                            |
+| ------------------------- | -------------------------------- |
+| URL                       | `http://localhost:4747/overlay/` |
+| Width / Height            | `1080` / `1080`                  |
+| **Control audio via OBS** | ticked (wheel sounds go to OBS)  |
+
+The background stays transparent. Run a 3-spin test game and watch it play in OBS:
+
+```bash
+curl -X POST http://localhost:4747/api/command -H 'Content-Type: application/json' \
+  -d '{"type":"spin","player":"Tester","spins":3}'
+```
+
+```powershell
+# Windows PowerShell
+Invoke-RestMethod -Method Post http://localhost:4747/api/command -ContentType 'application/json' -Body '{"type":"spin","player":"Tester","spins":3}'
+```
+
+<p align="center"><img src="docs/overlay-result.jpg" width="420" alt="Overlay during a 3-spin game: $5 won, bank at $8" /></p>
+
+### 3. Add the control dock
+
+In OBS: **Docks → Custom Browser Docks…**, Dock Name `FinWheel`, URL `http://localhost:4747/dock/`, **Apply**.
+Drag the panel where you like. To play: pick a wheel, type the player, choose the spins, press **Spin**.
+
+<p align="center"><img src="docs/setup-dock-play.jpg" width="380" alt="Dock Play tab: wheel chips, player name, spins stepper and Spin button" /></p>
+
+### 4. Connect Twitch chat
+
+In the dock: **Settings → Twitch chat → Channel** = your channel name → **Save settings**. The badge turns
+**connected** (reading chat needs no login). Try it in your chat:
+
+```text
+!spin                        you play the active wheel (broadcaster/mods)
+!spin @friend 5 high-roller  friend plays 5 spins on High Roller
+!raffle open                 viewers enter with !join
+!raffle draw                 winner spins The Grand Wheel
+```
+
+To let viewers type `!spin` themselves, set **Who can spin** to _Everyone_ (or _Subscribers_) and keep a
+cooldown.
+
+<p align="center">
+  <img src="docs/setup-dock-twitch.jpg" width="320" alt="Dock Twitch chat settings, connected" />
+  <img src="docs/overlay-raffle.jpg" width="420" alt="Raffle wheel filled with entrants and the !join badge" />
+</p>
+
+### 5. Announce results in chat (optional)
+
+FinWheel needs a chat token for the account that posts (your channel or a bot account):
+
+1. [dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps) → **Register Your Application**: OAuth
+   Redirect URL `http://localhost`, Category _Chat Bot_, Client Type _Public_. Copy the **Client ID**.
+2. Logged in as the posting account, open (replace `YOUR_CLIENT_ID`):
+   `https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=YOUR_CLIENT_ID&redirect_uri=http://localhost&scope=chat:read+chat:edit`
+   → **Authorize**. The browser lands on a page that does not load, with
+   `http://localhost/#access_token=abc123…` in the address bar: copy that token.
+3. Put it in `.env` (`copy .env.example .env` on Windows) and restart `npm start`:
+
+```bash
+cp .env.example .env
+```
+
+```ini
+TWITCH_BOT_USERNAME=yourbot
+TWITCH_OAUTH_TOKEN=abc123yourtoken
+```
+
+Results, raffle openings and winners are now posted in chat. Tokens expire after a while: repeat step 2 when
+announcements stop.
+
+### 6. Channel points and bits (optional)
+
+- **Channel points:** in the Twitch Creator Dashboard create a custom reward and tick **Require Viewer to Enter
+  Text** (other rewards never reach chat). Redeem it once, then in the dock **Settings → Channel points**
+  click **Map** next to it, pick a wheel, **Save settings**.
+- **Bits:** **Settings → Cheers** → enable _Bits trigger a spin_, set the minimum and the wheel, **Save settings**.
+
+### 7. OBS hotkeys (optional)
+
+1. Install [Python 3](https://www.python.org/downloads/), then in OBS **Tools → Scripts → Python Settings**
+   select its install folder.
+2. **Scripts → +** → `obs/finwheel_hotkeys.py`.
+3. **Settings → Hotkeys** → search `FinWheel` → bind _Spin_, _Spin next_, _Draw raffle winner_, …
+
+### Troubleshooting
+
+| Problem                       | Fix                                                                                                                                     |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Overlay is empty              | Is `npm start` running? `curl http://localhost:4747/api/health`, then right-click the source → **Refresh**.                             |
+| No sound                      | Tick **Control audio via OBS** and unmute `FinWheel` in the Audio Mixer.                                                                |
+| Chat commands ignored         | **Settings** badge must say _connected_. By default only the broadcaster and mods can `!spin`.                                          |
+| Channel-point reward ignored  | The reward must **require viewer text**.                                                                                                |
+| `Port 4747 is already in use` | FinWheel is already running, or pick another port: `PORT=4848 npm start` (PowerShell: `$env:PORT=4848; npm start`) and update the URLs. |
+
+Overlay URL options: `?preview` adds a felt background to test in a normal browser, `?mute=1` silences one source.
 
 ## Playing
 
@@ -79,11 +175,7 @@ one with _Spin next_ if auto-advance is off).
 Money slices print their amount on the wheel automatically (`$10`, `×2 TOTAL`, `+1 FREE SPIN`), computed
 from these fields so the display always matches the payout.
 
-## Twitch
-
-Set the channel in **Settings → Twitch chat**. Reading chat needs no credentials. To announce results in
-chat, create `.env` from [`.env.example`](.env.example) and set `TWITCH_BOT_USERNAME` and
-`TWITCH_OAUTH_TOKEN` (a chat token for that account).
+## Chat commands
 
 | Chat                            | Who                    | Effect                                                        |
 | ------------------------------- | ---------------------- | ------------------------------------------------------------- |
@@ -93,9 +185,6 @@ chat, create `.env` from [`.env.example`](.env.example) and set `TWITCH_BOT_USER
 | `!raffle open \| close \| draw` | moderators             | Run the raffle from chat                                      |
 | Channel-point reward            | everyone               | Mapped reward → game on a chosen wheel                        |
 | Cheer ≥ minimum bits            | everyone               | Game on a chosen wheel                                        |
-
-Channel-point rewards reach chat only when the reward **requires viewer input**. Redeem it once; the
-dock lists the unknown reward id with a _Map_ button.
 
 ## HTTP API
 
