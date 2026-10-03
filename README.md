@@ -69,7 +69,8 @@ curl -X POST http://localhost:4747/api/command -H 'Content-Type: application/jso
 
 ```powershell
 # Windows PowerShell
-Invoke-RestMethod -Method Post http://localhost:4747/api/command -ContentType 'application/json' -Body '{"type":"spin","player":"VelvetViper","spins":3}'
+irm http://localhost:4747/api/command -Method Post -ContentType 'application/json' `
+  -Body '{"type":"spin","player":"VelvetViper","spins":3}'
 ```
 
 <p align="center"><img src="docs/overlay-result.jpg" width="420" alt="Overlay during a 3-spin game: $5 won, bank at $8 (preview background)" /></p>
@@ -120,7 +121,7 @@ FinWheel posts with the account that owns the token (your channel or a bot accou
    the part between `access_token=` and `&`.
 
 3. In the `finwheel` folder, copy the example settings, then remove the `# ` in front of the two `TWITCH_`
-   lines and fill them in:
+   lines and fill them in (username = login of the account you authorized):
 
    ```bash
    cp .env.example .env
@@ -131,20 +132,16 @@ FinWheel posts with the account that owns the token (your channel or a bot accou
    TWITCH_OAUTH_TOKEN=abc123yourtoken
    ```
 
-   `TWITCH_BOT_USERNAME` is the login of the account you authorized. Restart `npm start`; the Twitch chat card
-   no longer says _read-only_. Bot account? Type `/mod yourbot` in your chat so slow or followers-only mode can't
-   block it.
+   Restart `npm start`: the Twitch chat card no longer says _read-only_. Bot account? Type `/mod yourbot` in
+   your chat so slow or followers-only mode can't block it.
 
-The token lasts about 60 days. Check it with
-`curl -H "Authorization: OAuth abc123yourtoken" https://id.twitch.tv/oauth2/validate`; when the badge says
-**error**, chat commands stop too: repeat 5.2, update `.env`, restart.
+The token lasts about 60 days; when it expires the badge says **error** (see [Troubleshooting](#troubleshooting)).
 
 ### 6. Channel points and bits (optional, Affiliate/Partner)
 
 - **Channel points:** [Creator Dashboard](https://dashboard.twitch.tv) → **Viewer Rewards → Channel Points →
-  Manage Rewards → Add New Custom Reward**, turn on **Require Viewer to Enter Text** (other rewards never reach
-  chat). Redeem it once, then in the dock **Settings → Channel points** click **Map**, pick a wheel,
-  **Save settings**.
+  Manage Rewards → Add New Custom Reward**, turn on **Require Viewer to Enter Text**. Redeem it once, then in the
+  dock **Settings → Channel points** click **Map**, pick a wheel, **Save settings**.
 - **Bits:** **Settings → Cheers** → enable _Bits trigger a spin_, set the minimum and the wheel, **Save settings**.
 
 ### 7. OBS hotkeys (optional)
@@ -155,29 +152,29 @@ The token lasts about 60 days. Check it with
    Linux: skip, OBS uses the system Python.
 2. **Tools → Scripts → +** → `obs/finwheel_hotkeys.py`. Changed `PORT` or set `FINWHEEL_TOKEN`? Fill in the
    script's **Server URL** / **Control token**.
-3. **Settings → Hotkeys** → type `FinWheel` in **Filter** → bind _FinWheel: Spin the active wheel_, _Spin next in
-   queue_, _Draw raffle winner_, … (macOS: allow OBS in **Privacy & Security → Input Monitoring** so hotkeys work
-   while a game has focus).
+3. **Settings → Hotkeys** → type `FinWheel` in **Filter** → bind the _FinWheel: …_ actions you want (macOS: allow
+   OBS in **Privacy & Security → Input Monitoring** so hotkeys work while a game has focus).
 
 ### Troubleshooting
 
-| Problem                       | Fix                                                                                                                                                                             |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Overlay is empty              | Is `npm start` running? Check `curl http://localhost:4747/api/health`, then in the source's **Properties** click **Refresh cache of current page**.                             |
-| No sound                      | Tick **Control audio via OBS** and unmute `FinWheel` in the Audio Mixer. To hear it yourself: **Edit → Advanced Audio Properties** → `FinWheel` → **Monitor and Output**.       |
-| Chat commands ignored         | The **Settings** badge must say _connected_. By default only the broadcaster and mods can `!spin`; viewers get one game per cooldown (60 s) and none while already queued.      |
-| Badge says _error_            | The Twitch token expired or is wrong: redo step 5.2, update `.env`, restart `npm start`.                                                                                        |
-| Channel-point reward ignored  | The reward must **require viewer text**.                                                                                                                                        |
-| `Port 4747 is already in use` | FinWheel is already running: use that one (or stop it with Ctrl+C). Another app owns 4747? `PORT=4848 npm start` (PowerShell: `$env:PORT=4848; npm start`) and use 4848 in OBS. |
+| Problem                       | Fix                                                                                                                                                                                                                                                              |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Overlay is empty              | Is `npm start` running? Check `curl http://localhost:4747/api/health`, then in the source's **Properties** click **Refresh cache of current page**.                                                                                                              |
+| No sound                      | Tick **Control audio via OBS** and unmute `FinWheel` in the Audio Mixer. To hear it yourself: **Edit → Advanced Audio Properties** → `FinWheel` → **Monitor and Output** (OBS 32.2+: **Monitoring Enabled**).                                                    |
+| Chat commands ignored         | The **Settings** badge must say _connected_. By default only the broadcaster and mods can `!spin`; viewers get one game per cooldown (60 s) and none while already queued.                                                                                       |
+| Badge says _error_            | The Twitch token expired or is wrong, so chat commands stop too. Check it with `curl -H "Authorization: OAuth abc123yourtoken" https://id.twitch.tv/oauth2/validate` (`curl.exe` in Windows PowerShell), then redo step 5.2, update `.env`, restart `npm start`. |
+| Channel-point reward ignored  | Turn on **Require Viewer to Enter Text**: other rewards never reach chat.                                                                                                                                                                                        |
+| `Port 4747 is already in use` | FinWheel is already running: use that one (or stop it with Ctrl+C). Another app owns 4747? `PORT=4848 npm start` (PowerShell: `$env:PORT=4848; npm start`) and use 4848 in OBS.                                                                                  |
 
 Overlay URL options: `?preview` adds a felt background to test in a normal browser, `?mute=1` silences one source.
 
 ## Playing
 
-Each spin shows its slice and the running **bank** (top-left badge). When a game of 2+ spins ends (last spin
-or bankrupt), the **total winnings** screen lists every spin; a 1-spin game ends on its result card. Requests
-that arrive mid-game wait in the **queue** and play automatically (or one by one with _Spin next_ if
-auto-advance is off).
+On money wheels each spin shows its slice and the running **bank** (top-left badge), and a game that ends (last
+spin or bankrupt) after 2 or more spins shows the **total winnings** screen with every spin listed. Otherwise
+(bankrupt on the first spin, Prize Vault, Dare Wheel) the game ends on its result card. Requests that arrive
+mid-game wait in the **queue** and play automatically (turn off **Settings → Spin → Play the queue
+automatically** to play them one by one with _Spin next_).
 
 ### Slice effects
 
