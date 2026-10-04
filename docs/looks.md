@@ -49,6 +49,10 @@ and stay upright while the wheel turns. Glam writes the wheel name over the phot
 of its compass star. With several photos, they take turns in list order and cross-fade every **Seconds per
 photo**.
 
+FinWheel ships with four default photos (`/hub/broke-boi.jpg`, `/hub/pathetic.jpg`, `/hub/pillow.jpg` and
+`/hub/catsuit.jpg`, from `src/web/public/hub/`). An install that already has saved settings gets them once after
+updating; remove any of them with **×** and they stay removed.
+
 ### Upload from the dock
 
 1. In the dock: **Settings → Overlay → Centre photos → Add photos…**, pick one or more images.

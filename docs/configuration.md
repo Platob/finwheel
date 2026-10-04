@@ -16,17 +16,17 @@ Everything FinWheel saves lives in `data/` (or the folder set by `FINWHEEL_DATA_
 In the dock: **Settings → Overlay**, then **Save settings**. In `data/config.json` they sit under `settings.overlay`
 (currency under `settings.currency`).
 
-| Setting             | Dock                         | Default | Limits                                                                                    |
-| ------------------- | ---------------------------- | ------- | ----------------------------------------------------------------------------------------- |
-| `theme`             | **Look**                     | `glam`  | `glam` or `casino` ([Looks & photos](looks.md))                                           |
-| `hubPhotos`         | **Centre photos**            | none    | 12 photos; each an `http(s)://` URL or a path on this server (`/media/…`), 500 characters |
-| `hubPhotoSeconds`   | **Seconds per photo**        | `8`     | 2 to 120; shown in the dock once there are two photos                                     |
-| `autoHide`          | **Hide the wheel when idle** | off     | An open raffle wheel stays visible                                                        |
-| `showRaffleBadge`   | **Show the raffle badge**    | on      |                                                                                           |
-| `sound`             | **Sound effects**            | on      |                                                                                           |
-| `volume`            | **Volume**                   | `0.6`   | 0 to 1 (the dock shows 0 to 100 %)                                                        |
-| `currency.symbol`   | **Currency symbol**          | `$`     | 4 characters                                                                              |
-| `currency.position` | **Symbol position**          | before  | _Before ($10)_ or _After (10 €)_                                                          |
+| Setting             | Dock                         | Default                     | Limits                                                                                    |
+| ------------------- | ---------------------------- | --------------------------- | ----------------------------------------------------------------------------------------- |
+| `theme`             | **Look**                     | `glam`                      | `glam` or `casino` ([Looks & photos](looks.md))                                           |
+| `hubPhotos`         | **Centre photos**            | 4 shipped photos (`/hub/…`) | 12 photos; each an `http(s)://` URL or a path on this server (`/media/…`), 500 characters |
+| `hubPhotoSeconds`   | **Seconds per photo**        | `8`                         | 2 to 120; shown in the dock once there are two photos                                     |
+| `autoHide`          | **Hide the wheel when idle** | off                         | An open raffle wheel stays visible                                                        |
+| `showRaffleBadge`   | **Show the raffle badge**    | on                          |                                                                                           |
+| `sound`             | **Sound effects**            | on                          |                                                                                           |
+| `volume`            | **Volume**                   | `0.6`                       | 0 to 1 (the dock shows 0 to 100 %)                                                        |
+| `currency.symbol`   | **Currency symbol**          | `$`                         | 4 characters                                                                              |
+| `currency.position` | **Symbol position**          | before                      | _Before ($10)_ or _After (10 €)_                                                          |
 
 ## Environment variables
 
