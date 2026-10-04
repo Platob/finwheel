@@ -7,17 +7,28 @@
  * Scenarios: idle[:wheel] · spin[:wheel] · result[:wheel] · total[:wheel] · bank[:wheel] · raffle
  * Options:   --out DIR · --theme glam|casino · --size 1080 · --config file.json (wheels/settings
  *            merged into the saved config) · --photo URL (repeatable centre photos) · --no-preview
+ *            --web DIR / --node DIR: use another build of the overlay (vite --outDir) or server
+ *            (tsc --outDir) instead of dist/web and dist/node.
  * Needs Playwright (global install is fine) and Chromium.
  */
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
-const opt = { out: 'shots', theme: '', size: 1080, config: '', photos: [], preview: true };
+const opt = {
+  out: 'shots',
+  theme: '',
+  size: 1080,
+  config: '',
+  photos: [],
+  preview: true,
+  web: join(root, 'dist/web'),
+  node: join(root, 'dist/node'),
+};
 const scenarios = [];
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
@@ -27,6 +38,8 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--config') opt.config = args[++i];
   else if (a === '--photo') opt.photos.push(args[++i]);
   else if (a === '--no-preview') opt.preview = false;
+  else if (a === '--web') opt.web = resolve(args[++i]);
+  else if (a === '--node') opt.node = resolve(args[++i]);
   else scenarios.push(a);
 }
 if (scenarios.length === 0) scenarios.push('idle');
@@ -48,7 +61,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const port = 5000 + Math.floor(Math.random() * 3000);
 const base = `http://127.0.0.1:${port}`;
 const dataDir = mkdtempSync(join(tmpdir(), 'finwheel-snap-'));
-const server = spawn(process.execPath, [join(root, 'dist/node/server/index.js')], {
+// The server finds its web assets and default config from the project root it runs in, so run
+// it from a throwaway root that points at the requested builds.
+const runRoot = mkdtempSync(join(tmpdir(), 'finwheel-root-'));
+cpSync(join(root, 'package.json'), join(runRoot, 'package.json'));
+symlinkSync(join(root, 'config'), join(runRoot, 'config'));
+symlinkSync(join(root, 'node_modules'), join(runRoot, 'node_modules'));
+mkdirSync(join(runRoot, 'dist'));
+cpSync(opt.node, join(runRoot, 'dist/node'), { recursive: true });
+symlinkSync(opt.web, join(runRoot, 'dist/web'));
+const server = spawn(process.execPath, [join(runRoot, 'dist/node/server/index.js')], {
   env: { ...process.env, PORT: String(port), FINWHEEL_DATA_DIR: dataDir, FINWHEEL_TOKEN: '' },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -190,4 +212,5 @@ try {
 } finally {
   server.kill();
   rmSync(dataDir, { recursive: true, force: true });
+  rmSync(runRoot, { recursive: true, force: true });
 }
