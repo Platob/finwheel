@@ -10,6 +10,12 @@ const PHOTO_FADE_MS = 700;
 /** Longest side of a centre photo once scaled down (keeps hub rebuilds cheap). */
 const PHOTO_MAX_SIDE = 768;
 
+/** Wheel placement relative to the canvas size: centre height and outer rim radius. */
+export interface Framing {
+  centerY: number;
+  rimOuter: number;
+}
+
 interface Sprites {
   rim: HTMLCanvasElement;
   gloss: HTMLCanvasElement | null;
@@ -57,6 +63,8 @@ export class WheelScene {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private theme: WheelTheme,
+    /** Overrides where the theme places the wheel (e.g. centred, without the overlay's signs). */
+    private readonly framing: Framing | null = null,
   ) {
     this.ctx = canvas.getContext('2d')!;
   }
@@ -149,7 +157,7 @@ export class WheelScene {
   /** Centre of the wheel in CSS pixels relative to the canvas. */
   get center(): { x: number; y: number; radius: number } {
     const css = this.size / this.dpr;
-    const { centerY, rimOuter } = this.theme.layout;
+    const { centerY, rimOuter } = this.framing ?? this.theme.layout;
     return { x: css / 2, y: css * centerY, radius: css * rimOuter };
   }
 
@@ -204,7 +212,8 @@ export class WheelScene {
   // ── Internals ────────────────────────────────────────────────────────────
 
   private get geometry(): SceneGeometry {
-    const { centerY, rimOuter, face, hub } = this.theme.layout;
+    const { face, hub } = this.theme.layout;
+    const { centerY, rimOuter } = this.framing ?? this.theme.layout;
     const rim = this.size * rimOuter;
     return {
       size: this.size,

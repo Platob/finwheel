@@ -1,17 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { computeArcs, landingRotation, mod1 } from '../shared/geometry.js';
-import {
-  applyPrize,
-  availablePrizes,
-  formatMoney,
-  isMoneyWheel,
-  logChip,
-  slotEffect,
-  slotText,
-  startTurn,
-  type Turn,
-} from '../shared/rules.js';
+import { applyPrize, formatMoney, logChip, startTurn, type Turn } from '../shared/rules.js';
 import type { Config } from '../shared/schema.js';
 import {
   RAFFLE_WHEEL_KEY,
@@ -28,6 +18,7 @@ import {
   type TurnView,
   type WheelView,
 } from '../shared/types.js';
+import { prizeWheelView } from '../shared/wheel-view.js';
 import { secureRandom, weightedIndex } from './random.js';
 
 /** Pause between the wheel stopping and the result being revealed. */
@@ -316,29 +307,7 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
 
   private wheelView(wheelId: string): WheelView | null {
     const wheel = this.config.wheels.find((w) => w.id === wheelId);
-    if (!wheel) return null;
-    return {
-      key: wheel.id,
-      kind: 'prize',
-      name: wheel.name,
-      subtitle: wheel.subtitle,
-      sizing: wheel.sizing,
-      money: isMoneyWheel(wheel),
-      segments: availablePrizes(wheel).map((p) => {
-        const effect = slotEffect(p);
-        return {
-          id: p.id,
-          label: p.label,
-          description: p.description,
-          weight: p.weight,
-          tier: p.tier,
-          ...(p.color ? { color: p.color } : {}),
-          ...(p.bust ? { bust: true } : {}),
-          ...slotText(p, this.settings.currency),
-          ...(effect ? { effect } : {}),
-        };
-      }),
-    };
+    return wheel ? prizeWheelView(wheel, this.settings.currency) : null;
   }
 
   private raffleView(): WheelView {
