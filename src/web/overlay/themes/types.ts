@@ -49,7 +49,7 @@ export interface WheelTheme {
   readonly hubRing: number;
   /** Marquee lights: track radius relative to the rim, angles in turns clockwise from 12 o'clock. */
   readonly lights: { track: number; angles: readonly number[] };
-  /** Whether the hub turns with the face (false keeps its text and photo upright). */
+  /** Whether the photo-less hub turns with the face (false keeps its text upright). Photos never turn. */
   readonly hubRotates: boolean;
 
   /** The rotating face (slices, labels, pegs) as a square canvas of side `2 × radius`. */

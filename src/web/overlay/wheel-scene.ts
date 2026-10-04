@@ -171,6 +171,8 @@ export class WheelScene {
 
     const g = this.geometry;
     const rf = g.face;
+    // Centre photos always stay upright; only a photo-less hub may turn with the face.
+    const hubRotates = theme.hubRotates && this.photos.length === 0;
 
     ctx.clearRect(0, 0, size, size);
     ctx.drawImage(sprites.rim, 0, 0);
@@ -194,10 +196,10 @@ export class WheelScene {
       ctx.globalAlpha = 1;
     }
     this.drawHighlight(now, rf);
-    if (theme.hubRotates) this.drawHub(now, g.hub);
+    if (hubRotates) this.drawHub(now, g.hub);
     ctx.restore();
 
-    if (!theme.hubRotates) {
+    if (!hubRotates) {
       ctx.save();
       ctx.translate(g.cx, g.cy);
       this.drawHub(now, g.hub);

@@ -112,6 +112,8 @@ async function reset() {
   throw new Error('Could not get back to idle');
 }
 
+/** Closed in `finally` too: an open browser keeps Node alive after an error. */
+let browser;
 try {
   for (let i = 0; i < 100; i++) {
     try {
@@ -137,7 +139,7 @@ try {
   await command({ type: 'config.save', wheels: extra.wheels ?? s0.config.wheels, settings });
 
   mkdirSync(opt.out, { recursive: true });
-  const browser = await chromium.launch();
+  browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: opt.size, height: opt.size } });
   page.on('pageerror', (e) => console.error('pageerror:', e.message));
   page.on('console', (m) => m.type() === 'error' && console.error('console:', m.text()));
@@ -210,6 +212,7 @@ try {
   console.error(serverLog);
   process.exitCode = 1;
 } finally {
+  await browser?.close();
   server.kill();
   rmSync(dataDir, { recursive: true, force: true });
   rmSync(runRoot, { recursive: true, force: true });

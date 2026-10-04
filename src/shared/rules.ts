@@ -93,7 +93,9 @@ export function applyPrize(
   } else {
     if (prize.nextMultiplier > 1) armed = roundBoost(turn.boost * prize.nextMultiplier);
     else boost = turn.boost;
-    after = roundMoney((before + prize.cash * boost) * prize.multiplier);
+    // Boosted cash is rounded on its own, so the bank grows by exactly what the log chip shows.
+    const paid = roundMoney(prize.cash * boost);
+    after = roundMoney((before + paid) * prize.multiplier);
     pending = [
       ...(prize.chainWheelId
         ? Array.from({ length: spinsPerTurn(prize.chainWheelId) }, () => prize.chainWheelId!)
@@ -146,7 +148,8 @@ export function slotText(
     return { amount, caption };
   }
   if (prize.multiplier > 1) return { amount: `×${prize.multiplier}`, caption: spinCaption || 'total' };
-  if (next) return { amount: next, caption: 'next' };
+  // A shrinking total (Lose Half + ×2 next) keeps its label, so the slice never hides the loss.
+  if (next && prize.multiplier === 1) return { amount: next, caption: 'next' };
   if (spins > 0) return { amount: `+${spins}`, caption: spins > 1 ? 'free spins' : 'free spin' };
   return null;
 }

@@ -4,7 +4,8 @@ const clone = <T>(value: T): T => structuredClone(value);
 
 /**
  * Local editable copy of server data. Follows the server while untouched; once edited it is kept
- * until saved (the next server update after a save is adopted) or reverted.
+ * until saved (the next server update after a save is adopted, unless the draft was edited again
+ * since the save was sent) or reverted.
  */
 export function useDraft<T>(source: T) {
   const sourceJson = JSON.stringify(source);
@@ -12,14 +13,22 @@ export function useDraft<T>(source: T) {
   const [dirty, setDirty] = useState(false);
   const [baseJson, setBaseJson] = useState(sourceJson);
   const saving = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** The draft as sent by the last save. */
+  const sent = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!dirty || saving.current) {
-      if (saving.current) clearTimeout(saving.current);
-      saving.current = null;
+    const wasSaving = saving.current !== null;
+    if (saving.current) clearTimeout(saving.current);
+    saving.current = null;
+    const unchanged = sent.current === JSON.stringify(draft);
+    sent.current = null;
+    if (!dirty || (wasSaving && unchanged)) {
       setDraft(clone(source));
       setBaseJson(sourceJson);
       setDirty(false);
+    } else if (wasSaving) {
+      // Edits made after the save was sent (e.g. a photo upload finishing) stay unsaved, not stale.
+      setBaseJson(sourceJson);
     }
     // Only react to server-side changes.
   }, [sourceJson]);
@@ -46,6 +55,7 @@ export function useDraft<T>(source: T) {
     saved() {
       if (saving.current) clearTimeout(saving.current);
       saving.current = setTimeout(() => (saving.current = null), 3000);
+      sent.current = JSON.stringify(draft);
     },
   };
 }

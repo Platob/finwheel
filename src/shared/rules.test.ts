@@ -6,6 +6,7 @@ import {
   hasMoneyEffect,
   logChip,
   pickWeighted,
+  roundMoney,
   simulateTurns,
   slotEffect,
   slotText,
@@ -184,6 +185,20 @@ describe('×N next', () => {
     expect(outcomes[1]!.turn.boost).toBe(1.21);
     expect(outcomes[2]!.after).toBe(3.63);
   });
+
+  it('adds boosted cash exactly as its log chip shows it', () => {
+    const cases: [total: number, boost: number, cash: number][] = [
+      [0.5, 1.5, 0.29],
+      [3.33, 1.1, 4.85],
+      [12.94, 3.375, 1],
+    ];
+    for (const [total, boost, amount] of cases) {
+      const slice = cash(amount);
+      const out = applyPrize(turn({ total, boost }), slice, 'w', 12, one);
+      expect(formatMoney(roundMoney(out.after - out.before), usd)).toBe(logChip(slice, usd, boost));
+    }
+    expect(applyPrize(turn({ total: 0.5, boost: 1.5 }), cash(0.29), 'w', 12, one).after).toBe(0.93);
+  });
 });
 
 describe('hasMoneyEffect', () => {
@@ -243,6 +258,12 @@ describe('slotText', () => {
       caption: 'total',
     });
     expect(slotText(prize({ label: 'Bankrupt', bust: true, nextMultiplier: 2 }), usd)).toBeNull();
+    // A shrinking total keeps its label (styled as a ×total slice), so the loss is never hidden.
+    const halfNext = prize({ label: 'Half + ×2 Next', multiplier: 0.5, nextMultiplier: 2 });
+    expect(slotText(halfNext, usd)).toBeNull();
+    expect(slotEffect(halfNext)).toBe('total');
+    expect(logChip(halfNext, usd)).toBe('Half + ×2 Next');
+    expect(slotText(prize({ label: 'Wipe + ×3 Next', multiplier: 0, nextMultiplier: 3 }), usd)).toBeNull();
   });
 });
 

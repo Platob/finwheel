@@ -120,8 +120,10 @@ function applyTheme(id: ThemeId) {
 // ── Centre photos ────────────────────────────────────────────────────────
 
 let photoKey = '';
+/** A photo still loading after this long is skipped, so one dead link never holds back the others. */
+const PHOTO_TIMEOUT_MS = 10_000;
 
-/** Loads the centre photos; ones that fail to load are skipped (with a console warning). */
+/** Loads the centre photos; ones that fail or take too long to load are skipped (with a console warning). */
 function applyPhotos(urls: readonly string[], seconds: number) {
   const key = JSON.stringify([urls, seconds]);
   if (key === photoKey) return;
@@ -131,12 +133,19 @@ function applyPhotos(urls: readonly string[], seconds: number) {
       const img = new Image();
       img.decoding = 'async';
       img.src = url;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('timeout')), PHOTO_TIMEOUT_MS);
+      });
       try {
-        await img.decode();
+        await Promise.race([img.decode(), timeout]);
         return img;
       } catch {
+        img.src = ''; // Cancels a request that is still hanging.
         console.warn(`[finwheel] Could not load centre photo ${url}`);
         return null;
+      } finally {
+        clearTimeout(timer);
       }
     }),
   ).then((images) => {
@@ -262,7 +271,9 @@ function updateChrome(s: AppState) {
   // Bank badge and stat row for money turns; before one starts, the stat row shows its first spin.
   const turn = s.turn;
   const showBank = Boolean(turn?.money);
-  const spinsAhead = !turn && s.stage === 'idle' && s.display.money ? gameSpins(s, s.display.key) : 0;
+  // A sold-out wheel ("No prizes left") cannot start a game, so it previews none.
+  const playable = s.display.money && s.display.segments.length > 0;
+  const spinsAhead = !turn && s.stage === 'idle' && playable ? gameSpins(s, s.display.key) : 0;
   statsPreview = spinsAhead > 0;
   ui.bank.classList.toggle('is-visible', showBank);
   ui.stats.classList.toggle('is-visible', showBank || statsPreview);

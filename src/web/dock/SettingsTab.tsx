@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { MAX_HUB_PHOTOS, MAX_PHOTO_URL, PHOTO_URL, ROLES, THEMES } from '../../shared/constants';
 import type { Settings, ThemeId } from '../../shared/schema';
 import type { AppState, Notice } from '../../shared/types';
@@ -419,6 +419,14 @@ function HubPhotos({
   const [progress, setProgress] = useState<string | null>(null);
   const [link, setLink] = useState('');
   const room = MAX_HUB_PHOTOS - photos.length;
+  // Uploads that finish after Settings is closed would land in a discarded draft.
+  const mounted = useRef(true);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
 
   const add = (url: string) =>
     update((list) => {
@@ -430,11 +438,22 @@ function HubPhotos({
     if (batch.length < files.length) {
       notify(`Only ${MAX_HUB_PHOTOS} photos fit: ${files.length - batch.length} skipped`, 'error');
     }
+    const stopped = () => notify('Upload stopped: Settings was closed before saving', 'error');
+    // `photos` does not follow the adds of this loop, so duplicates are tracked here.
+    const seen = new Set(photos);
     let added = 0;
     for (const [i, file] of batch.entries()) {
+      if (!mounted.current) return stopped();
       setProgress(batch.length > 1 ? `Uploading ${i + 1}/${batch.length}…` : 'Uploading…');
       try {
-        add(await uploadPhoto(await shrinkPhoto(file)));
+        const url = await uploadPhoto(await shrinkPhoto(file));
+        if (!mounted.current) return stopped();
+        if (seen.has(url)) {
+          notify(`${file.name}: already in the list`, 'error');
+          continue;
+        }
+        seen.add(url);
+        add(url);
         added++;
       } catch (error) {
         notify(`${file.name}: ${(error as Error).message}`, 'error');
@@ -445,6 +464,7 @@ function HubPhotos({
   };
 
   const addLink = () => {
+    if (room <= 0) return notify(`Only ${MAX_HUB_PHOTOS} photos fit`, 'error');
     const url = link.trim();
     if (url.length > MAX_PHOTO_URL || !PHOTO_URL.test(url)) {
       return notify('Use an http(s):// image URL or a /path on this server', 'error');
@@ -526,7 +546,10 @@ function HubPhotos({
 async function shrinkPhoto(file: File): Promise<Blob> {
   let bitmap: ImageBitmap;
   try {
-    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch((error: unknown) =>
+      // Chromium < 112 (OBS 30's CEF 103) rejects 'from-image' but already honours EXIF orientation.
+      error instanceof TypeError ? createImageBitmap(file) : Promise.reject(error),
+    );
   } catch {
     throw new Error('not an image this browser can open');
   }
