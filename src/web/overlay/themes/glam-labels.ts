@@ -10,7 +10,7 @@ export const GLAM_FACE = {
   hub: 0.37,
   /** Lettering stays between these radii. */
   textInner: 0.39,
-  textOuter: 0.85,
+  textOuter: 0.82,
   /** Highest point of a tangential amount: keeps it clear of the pointer tip. */
   amountTop: 0.8,
 } as const;
@@ -44,7 +44,7 @@ const MARK_RATIO = 0.5;
 const MARK_MIN = 0.035;
 const MARK_GAP = 0.035;
 
-const LABEL_MAX = 0.105;
+const LABEL_MAX = 0.12;
 /** Half the ink height of a one-line label (descenders and outline included). */
 const LABEL_HALF = 0.47;
 /** Distance between the centres of two label lines, relative to the font size. */
@@ -129,12 +129,15 @@ export function tangentialAmount(m: AmountMeasure, cap = AMOUNT_MAX): Tangential
   return best;
 }
 
-/** Common amount size for a wheel, so that short and long amounts look alike. */
+/**
+ * Common amount size for a wheel, so that short and long amounts look alike: the size of the
+ * longest one, unless that would shrink the typical amount by more than 15%.
+ */
 export function amountCap(sizes: readonly number[]): number {
   if (sizes.length === 0) return AMOUNT_MAX;
   const sorted = [...sizes].sort((a, b) => a - b);
   const median = sorted[Math.floor((sorted.length - 1) / 2)]!;
-  return Math.min(AMOUNT_MAX, median * 1.1);
+  return Math.min(AMOUNT_MAX, Math.max(sorted[0]!, median * 0.85));
 }
 
 /** Amount printed along the radius (rim end), with the caption's font size when it fits. */
@@ -169,28 +172,34 @@ export interface RadialText {
 }
 
 /** Largest font size for a label block of `width` em and `half` em half-height along the radius. */
-function radialSize(width: number, half: number, t: number): number {
+function radialSize(width: number, half: number, t: number, cap: number): number {
   const length = GLAM_FACE.textOuter - GLAM_FACE.textInner;
   const w = width + STICKER_STROKE;
   // The inner end of the label is the narrowest part it has to fit in.
-  return Math.min(LABEL_MAX, length / w, (GLAM_FACE.textOuter * t - PAD) / (half + w * t));
+  return Math.min(cap, length / w, (GLAM_FACE.textOuter * t - PAD) / (half + w * t));
 }
 
 /**
- * Fits a label in its slice: as large as possible, on two lines when that is clearly bigger,
- * shortened with an ellipsis when it cannot reach `minSize`. Null when nothing fits.
+ * Fits a label in its slice: as large as possible up to `cap`, on two lines when that is clearly
+ * bigger, shortened with an ellipsis when it cannot reach `minSize`. Null when nothing fits.
  */
-export function fitRadialText(text: string, span: number, measure: Measure, minSize: number): RadialText | null {
+export function fitRadialText(
+  text: string,
+  span: number,
+  measure: Measure,
+  minSize: number,
+  cap = LABEL_MAX,
+): RadialText | null {
   const label = text.trim();
   if (!label) return null;
   const t = tanHalf(span);
-  const single = radialSize(measure(label), LABEL_HALF, t);
+  const single = radialSize(measure(label), LABEL_HALF, t, cap);
   let best: RadialText = { lines: [label], size: single };
 
   const words = label.split(/\s+/);
   for (let k = 1; k < words.length; k++) {
     const lines = [words.slice(0, k).join(' '), words.slice(k).join(' ')];
-    const size = radialSize(Math.max(...lines.map(measure)), LABEL_HALF + LABEL_LINE / 2, t);
+    const size = radialSize(Math.max(...lines.map(measure)), LABEL_HALF + LABEL_LINE / 2, t, cap);
     if (size > single * 1.18 && size > best.size) best = { lines, size };
   }
   if (best.size >= minSize) return best;
@@ -198,10 +207,17 @@ export function fitRadialText(text: string, span: number, measure: Measure, minS
   const chars = Array.from(label);
   for (let n = chars.length - 1; n >= 1; n--) {
     const short = `${chars.slice(0, n).join('').trimEnd()}…`;
-    const size = radialSize(measure(short), LABEL_HALF, t);
+    const size = radialSize(measure(short), LABEL_HALF, t, cap);
     if (size >= minSize) return { lines: [short], size };
   }
   return null;
+}
+
+/** Common label size limit for a wheel: short names do not dwarf the typical one. */
+export function labelCap(sizes: readonly number[]): number {
+  if (sizes.length === 0) return LABEL_MAX;
+  const sorted = [...sizes].sort((a, b) => a - b);
+  return Math.min(LABEL_MAX, sorted[Math.floor((sorted.length - 1) / 2)]! * 1.25);
 }
 
 /** The wheel name in the hub: one or more centred lines, and room for a crown above them. */

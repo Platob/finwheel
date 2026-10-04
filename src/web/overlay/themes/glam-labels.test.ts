@@ -24,8 +24,8 @@ describe('tangentialAmount', () => {
   it('prints short amounts large, where the reference does, on a 11-slice wheel', () => {
     const layout = tangentialAmount({ span: span(11), amount: measure('$7'), captions: [], mark: measure('$') });
     expect(layout).not.toBeNull();
-    expect(layout!.size).toBeCloseTo(0.17);
-    expect(layout!.radius).toBeCloseTo(0.65);
+    expect(layout!.size).toBeCloseTo(0.19);
+    expect(layout!.radius).toBeLessThan(0.66);
     expect(layout!.mark).not.toBeNull();
     expect(layout!.mark!.radius).toBeLessThan(layout!.radius);
     expect(layout!.mark!.radius).toBeGreaterThan(GLAM_FACE.textInner);
@@ -74,15 +74,16 @@ describe('tangentialAmount', () => {
   it('honours a common cap', () => {
     const layout = tangentialAmount({ span: span(8), amount: measure('$5'), captions: [], mark: null }, 0.1)!;
     expect(layout.size).toBeCloseTo(0.1);
-    expect(layout.radius).toBeCloseTo(0.65);
+    expect(layout.radius).toBeCloseTo(0.61);
   });
 });
 
 describe('amountCap', () => {
-  it('follows the median size', () => {
-    expect(amountCap([0.1, 0.1, 0.12, 0.17])).toBeCloseTo(0.11);
+  it('prints every amount alike unless one long amount would shrink the others too much', () => {
+    expect(amountCap([0.17, 0.15, 0.17, 0.17])).toBeCloseTo(0.15);
+    expect(amountCap([0.17, 0.1, 0.17, 0.17])).toBeCloseTo(0.1445);
     expect(amountCap([0.17, 0.17])).toBe(0.17);
-    expect(amountCap([])).toBe(0.17);
+    expect(amountCap([])).toBe(0.19);
   });
 });
 

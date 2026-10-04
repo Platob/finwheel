@@ -13,6 +13,7 @@ import {
   GLAM_FACE,
   hubNameLayout,
   LABEL_LINE,
+  labelCap,
   radialAmount,
   STICKER_STROKE,
   tangentialAmount,
@@ -20,13 +21,15 @@ import {
   type Measure,
   type TangentialAmount,
 } from './glam-labels';
-import { GLAM, glamSliceStyle, type GlamSliceStyle } from './glam-palette';
+import { GLAM, GLAM_CYCLE, glamSliceStyle, type GlamSliceStyle } from './glam-palette';
 import { type HubOptions, type SceneGeometry, type WheelTheme } from './types';
 
 const STICKER_FONT = 'Fredoka';
 const SERIF_FONT = 'Cinzel';
-const CAPTION_SPACING = 0.06;
+const CAPTION_SPACING = 0.04;
 const HUB_SPACING = 0.04;
+/** The hub name is set heavier than the captions, to stay legible over photos. */
+const HUB_WEIGHT = 900;
 
 /** Coins on the rim (one every 30°, from 12 o'clock) and pearls in each gap between two coins. */
 const COINS = 12;
@@ -36,14 +39,14 @@ const RIM = { track: 0.95, coinTrack: 0.957, coin: 0.053, pearl: 0.012 } as cons
 /** Hub proportions, relative to the hub radius. */
 const HUB = { ring: 0.965, gold: 0.935, disc: 0.86 } as const;
 /** Pointer proportions, relative to the outer rim radius (pivot = centre of its coin). */
-const POINTER = { lobeX: 0.042, lobeY: -0.016, lobe: 0.104, tip: 0.225, coin: 0.073 } as const;
+const POINTER = { lobeX: 0.042, lobeY: -0.016, lobe: 0.104, tip: 0.212, coin: 0.073 } as const;
 
-const font = (size: number, family = STICKER_FONT) => `700 ${size}px ${family}`;
+const font = (size: number, family = STICKER_FONT, weight = 700) => `${weight} ${size}px ${family}`;
 
 /** Text width at font size 1, for the label fitting maths. */
-function measurer(ctx: CanvasRenderingContext2D, family: string, spacing = 0): Measure {
+function measurer(ctx: CanvasRenderingContext2D, family: string, spacing = 0, weight = 700): Measure {
   return (text) => {
-    ctx.font = font(100, family);
+    ctx.font = font(100, family, weight);
     setLetterSpacing(ctx, `${spacing}em`);
     const width = ctx.measureText(text).width / 100;
     setLetterSpacing(ctx, '0px');
@@ -304,6 +307,12 @@ function paintLabels(
     if (plan.layout) plan.layout = tangentialAmount(plan.measure, cap) ?? plan.layout;
   }
   const planFor = new Map(plans.map((p) => [p.index, p]));
+  const labelSizes = segments.flatMap((segment, i) => {
+    if (planFor.has(i)) return [];
+    const fit = fitRadialText(segment.label, span(arcs[i]!), measures.sticker, minSize);
+    return fit ? [fit.size] : [];
+  });
+  const textCap = labelCap(labelSizes);
 
   segments.forEach((segment, i) => {
     const arc = arcs[i]!;
@@ -323,7 +332,7 @@ function paintLabels(
       ctx.restore();
       return;
     }
-    const fit = fitRadialText(segment.label, span(arc), measures.sticker, minSize);
+    const fit = fitRadialText(segment.label, span(arc), measures.sticker, minSize, textCap);
     if (fit) {
       const size = fit.size * r;
       const outer = GLAM_FACE.textOuter * r - (size * STICKER_STROKE) / 2;
@@ -336,16 +345,30 @@ function paintLabels(
   });
 }
 
+function paintSeparators(ctx: CanvasRenderingContext2D, arcs: readonly Arc[], r: number) {
+  if (arcs.length < 2) return;
+  ctx.strokeStyle = 'rgba(255, 246, 236, 0.92)';
+  ctx.lineWidth = Math.max(1, r * 0.007);
+  for (const arc of arcs) {
+    const a = toRadians(arc.start);
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3);
+    ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    ctx.stroke();
+  }
+}
+
+/** Blank, washed-out slices with a message (no prizes or entrants yet). */
 function paintEmpty(ctx: CanvasRenderingContext2D, view: WheelView, r: number) {
-  const g = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r);
-  g.addColorStop(0, GLAM.lightPink);
-  g.addColorStop(1, GLAM.hotPink);
-  ctx.fillStyle = g;
+  const arcs = computeArcs(Array<number>(12).fill(1), 'equal');
+  arcs.forEach((arc, i) => paintSlice(ctx, arc, GLAM_CYCLE[i % GLAM_CYCLE.length]!, r));
   ctx.beginPath();
   ctx.arc(0, 0, r, 0, TAU);
+  ctx.fillStyle = 'rgba(255, 240, 248, 0.45)';
   ctx.fill();
+  paintSeparators(ctx, arcs, r);
   const message = view.kind === 'raffle' ? 'Awaiting entrants' : 'No prizes left';
-  sticker(ctx, message, 0, -r * 0.62, r * 0.075, { fill: '#ffffff', stroke: GLAM.plum });
+  sticker(ctx, message, 0, -r * 0.63, r * 0.085, { fill: '#ffffff', stroke: GLAM.plum });
 }
 
 /** Renders the rotating part of the wheel (slices and lettering) into an offscreen canvas. */
@@ -367,18 +390,7 @@ function renderFace(view: WheelView, radius: number): HTMLCanvasElement {
   const styles = segments.map((segment, i) => glamSliceStyle(segment, i, segments.length));
   segments.forEach((_, i) => paintSlice(ctx, arcs[i]!, styles[i]!, r));
 
-  // Thin cream separators
-  if (segments.length > 1) {
-    ctx.strokeStyle = 'rgba(255, 246, 236, 0.92)';
-    ctx.lineWidth = Math.max(1, r * 0.007);
-    for (const arc of arcs) {
-      const a = toRadians(arc.start);
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3);
-      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-      ctx.stroke();
-    }
-  }
+  paintSeparators(ctx, arcs, r);
 
   // Soft depth under the rim
   const vignette = ctx.createRadialGradient(0, 0, r * 0.8, 0, 0, r);
@@ -569,11 +581,11 @@ function buildHub({ radius, view, photo }: HubOptions): HTMLCanvasElement {
   ctx.stroke();
 
   // Wheel name in serif capitals
-  const name = hubNameLayout(view?.name ?? '', measurer(ctx, SERIF_FONT, HUB_SPACING), !photo);
+  const name = hubNameLayout(view?.name ?? '', measurer(ctx, SERIF_FONT, HUB_SPACING, HUB_WEIGHT), !photo);
   if (name.crown) drawCrown(ctx, name.crown.y * disc, name.crown.height * disc);
   if (name.size > 0) {
     const size = name.size * disc;
-    ctx.font = font(size, SERIF_FONT);
+    ctx.font = font(size, SERIF_FONT, HUB_WEIGHT);
     setLetterSpacing(ctx, `${HUB_SPACING}em`);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
@@ -661,7 +673,7 @@ function drawPointer(ctx: CanvasRenderingContext2D, { cx, cy, rim: ro }: SceneGe
 
 export const glam: WheelTheme = {
   id: 'glam',
-  fonts: [font(40), font(40, SERIF_FONT)],
+  fonts: [font(40), font(40, SERIF_FONT), font(40, SERIF_FONT, HUB_WEIGHT)],
   layout: { centerY: 0.615, rimOuter: 0.37, face: 0.9, hub: GLAM_FACE.hub },
   hubRing: GLAM_FACE.hub,
   lights: {
@@ -679,8 +691,8 @@ export const glam: WheelTheme = {
   buildLights,
   drawPointer,
   highlight: (tier, bust) => {
-    if (bust) return { glow: '#ff4fa3', fill: '255, 70, 160', dim: 0.45 };
+    if (bust) return { glow: '#ff4fa3', fill: '255, 70, 160', dim: 0.42 };
     const precious = tier === 'legendary' || tier === 'jackpot';
-    return { glow: precious ? '#ffd54f' : '#fff1b0', fill: '255, 236, 170', dim: 0.4 };
+    return { glow: precious ? '#ffd54f' : '#fff1b0', fill: '255, 236, 170', dim: 0.34 };
   },
 };
