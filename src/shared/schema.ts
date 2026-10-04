@@ -159,6 +159,8 @@ export const ConfigSchema = z
      * later versions are appended once; a default wheel the streamer deleted is not brought back.
      */
     knownDefaults: z.array(idSchema).max(200).default([]),
+    /** The shipped default centre photos this install has already been offered (same idea). */
+    knownDefaultPhotos: z.array(photoUrl).max(50).default([]),
   })
   .superRefine((cfg, ctx) => {
     const wheelIds = new Set<string>();

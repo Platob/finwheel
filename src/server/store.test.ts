@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { MAX_HUB_PHOTOS } from '../shared/constants.js';
 import { ConfigSchema, MAX_WHEELS } from '../shared/schema.js';
 import { addNewDefaults, Store } from './store.js';
 
@@ -82,5 +83,30 @@ describe('new default wheels', () => {
     expect(added).toEqual(['x']);
     const same = config([wheel('a')], { knownDefaults: ['a'] });
     expect(addNewDefaults(same, config([wheel('a')])).config).toBe(same);
+  });
+});
+
+describe('new default photos', () => {
+  const withPhotos = (photos: string[], extra: Record<string, unknown> = {}) =>
+    config([wheel('a')], { settings: { overlay: { hubPhotos: photos } }, knownDefaults: ['a'], ...extra });
+
+  it('adds default centre photos an install has never been offered, once', () => {
+    const saved = withPhotos(['/media/mine.jpg']);
+    const { config: merged, photos } = addNewDefaults(saved, withPhotos(['/hub/a.jpg', '/hub/b.jpg']));
+    expect(photos).toEqual(['/hub/a.jpg', '/hub/b.jpg']);
+    expect(merged.settings.overlay.hubPhotos).toEqual(['/media/mine.jpg', '/hub/a.jpg', '/hub/b.jpg']);
+    expect(merged.knownDefaultPhotos).toEqual(['/hub/a.jpg', '/hub/b.jpg']);
+    // Removed afterwards: it stays removed.
+    const removed = {
+      ...merged,
+      settings: { ...merged.settings, overlay: { ...merged.settings.overlay, hubPhotos: ['/hub/b.jpg'] } },
+    };
+    expect(addNewDefaults(removed, withPhotos(['/hub/a.jpg', '/hub/b.jpg'])).config).toBe(removed);
+  });
+
+  it('respects the photo limit', () => {
+    const full = Array.from({ length: MAX_HUB_PHOTOS - 1 }, (_, i) => `/media/${i}.jpg`);
+    const { photos } = addNewDefaults(withPhotos(full), withPhotos(['/hub/a.jpg', '/hub/b.jpg']));
+    expect(photos).toEqual(['/hub/a.jpg']);
   });
 });

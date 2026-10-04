@@ -1544,6 +1544,9 @@
       "spinCommand": "!spin",
       "spinPermission": "moderator",
       "spinCooldownSec": 60
+    },
+    "overlay": {
+      "hubPhotos": ["/hub/broke-boi.jpg", "/hub/pathetic.jpg", "/hub/pillow.jpg", "/hub/catsuit.jpg"]
     }
   }
 }
