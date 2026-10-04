@@ -64,6 +64,7 @@ const ui = {
   headlineStatus: $('headline-status'),
   stats: $('stats'),
   statSpins: $('stat-spins'),
+  statSpinsLabel: $('stat-spins-label'),
   statTotal: $('stat-total'),
   statTotalBox: $('stat-total-box'),
   statNext: $('stat-next'),
@@ -280,7 +281,7 @@ function updateChrome(s: AppState) {
   ui.bank.classList.toggle('is-visible', showBank);
   ui.stats.classList.toggle('is-visible', showBank || statsPreview);
   if (statsPreview) {
-    setSticker(ui.statSpins, String(spinsAhead));
+    setSpinsLeft(spinsAhead);
     setSticker(ui.statTotal, money(0));
     setSticker(ui.statNext, '×1');
     ui.statNextBox.classList.remove('is-armed');
@@ -334,10 +335,16 @@ function setSticker(el: HTMLElement, text: string) {
   el.dataset.text = text;
 }
 
+/** The "N spins left" stat box ("1 spin left" in the singular). */
+function setSpinsLeft(count: number) {
+  setSticker(ui.statSpins, String(count));
+  ui.statSpinsLabel.textContent = count === 1 ? 'spin left' : 'spins left';
+}
+
 /** Spins left and the "×N next spin" boost of the stat row; the boost pops when it is armed. */
 function setTurnStats(turn: TurnView) {
   const next = turn.nextMultiplier;
-  setSticker(ui.statSpins, String(Math.max(0, turn.spinsPlanned - turn.spinNumber)));
+  setSpinsLeft(Math.max(0, turn.spinsPlanned - turn.spinNumber));
   setSticker(ui.statNext, `×${next}`);
   ui.statNextBox.classList.toggle('is-armed', next > 1);
   if (next !== nextShown) bump(ui.statNextBox, next > 1);
