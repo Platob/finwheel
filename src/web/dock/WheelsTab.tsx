@@ -53,13 +53,15 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
     update((all) =>
       all.push(
         copy
-          ? { ...structuredClone(copy), id, name: `${copy.name} copy`.slice(0, 40) }
+          ? // A copy keeps the game but not the chat command, which must stay unique.
+            { ...structuredClone(copy), id, name: `${copy.name} copy`.slice(0, 40), command: undefined }
           : {
               id,
               name: 'New wheel',
               subtitle: '',
               sizing: 'weight',
               spinsPerTurn: 1,
+              game: 'wheel',
               prizes: [newPrize(), newPrize()],
             },
       ),

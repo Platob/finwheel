@@ -1,4 +1,4 @@
-import type { Config, Sizing, Tier } from './schema.js';
+import type { Config, GameType, Sizing, Tier } from './schema.js';
 
 export type WheelKind = 'prize' | 'raffle';
 /** `total` shows the final amount once every spin of a multi-spin money game has run. */
@@ -25,6 +25,8 @@ export interface Segment {
   caption?: string;
   /** Main effect of a money slice (absent on bankrupt, prize and raffle slices). */
   effect?: SlotEffect;
+  /** Emoji or short symbol for the mini-games. */
+  icon?: string;
 }
 
 /** A frozen, render-ready snapshot of a wheel (prize wheel or raffle entrants). */
@@ -34,6 +36,8 @@ export interface WheelView {
   name: string;
   subtitle: string;
   sizing: Sizing;
+  /** How the prizes are played: the wheel or a mini-game. */
+  game: GameType;
   /** Whether the wheel has cash / multiplier / bankrupt slices. */
   money: boolean;
   segments: Segment[];
@@ -94,6 +98,8 @@ export interface SpinView {
   fromRotation: number;
   toRotation: number;
   durationMs: number;
+  /** Random 32-bit seed for the mini-games' animation details, so every overlay plays it the same. */
+  seed: number;
   /** Server timestamp (ms) at which the spin started. */
   startedAt: number;
   turn: TurnView | null;

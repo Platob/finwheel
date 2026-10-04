@@ -17,9 +17,8 @@ import type { AppState, SpinResult, TurnSummary, TurnView, WheelView } from '../
 import { connect } from '../common/socket';
 import { SoundBoard } from './audio';
 import { Celebration } from './fx';
-import { SpinMotion } from './spin-motion';
+import { GameDirector } from './games/director';
 import { getTheme, parseTheme } from './themes';
-import { WheelScene } from './wheel-scene';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
@@ -31,11 +30,12 @@ const muted = params.get('mute') === '1';
 const forcedTheme = parseTheme(params.get('theme'));
 
 const stage = $<HTMLElement>('stage');
-const scene = new WheelScene($<HTMLCanvasElement>('wheel'), getTheme(forcedTheme ?? 'glam'));
-const fx = new Celebration($<HTMLCanvasElement>('fx'));
-document.body.dataset.theme = scene.themeId;
-fx.setTheme(scene.themeId);
 const sound = new SoundBoard();
+/** The wheel or mini-game on screen (one canvas, one stage per game type). */
+const games = new GameDirector($<HTMLCanvasElement>('wheel'), getTheme(forcedTheme ?? 'glam'), sound);
+const fx = new Celebration($<HTMLCanvasElement>('fx'));
+document.body.dataset.theme = games.themeId;
+fx.setTheme(games.themeId);
 
 const ui = {
   plaqueTitle: $('plaque-title'),
@@ -71,7 +71,9 @@ const ui = {
 };
 
 let state: AppState | null = null;
-let motion: SpinMotion | null = null;
+/** The play being animated: which spin, and when it started on the local clock. */
+let playing: { id: string; startedAt: number; durationMs: number } | null = null;
+let landed = true;
 let revealedResultId: string | null = null;
 let pendingReveal: SpinResult | null = null;
 let bankShown = 0;
@@ -83,7 +85,7 @@ let shownSummaryId: string | null = null;
 let totalCount: { target: number; start: number } | null = null;
 const TOTAL_COUNT_MS = 1400;
 
-scene.onTick = (speed) => sound.tick(speed);
+games.onTick = (speed) => sound.tick(speed);
 
 // ── Layout ────────────────────────────────────────────────────────────────
 
@@ -91,7 +93,7 @@ function layout() {
   const size = Math.min(window.innerWidth, window.innerHeight);
   const dpr = window.devicePixelRatio || 1;
   stage.style.setProperty('--u', `${size / 100}px`);
-  scene.resize(size, dpr);
+  games.resize(size, dpr);
   fx.resize(window.innerWidth, window.innerHeight, dpr);
   fitHeadline();
 }
@@ -100,17 +102,17 @@ layout();
 
 /** Redraws canvas text once the theme's web fonts are ready. */
 function loadFonts() {
-  const theme = scene.themeId;
+  const theme = games.themeId;
   void Promise.all(getTheme(theme).fonts.map((font) => document.fonts.load(font))).then(() => {
-    if (scene.themeId === theme) scene.refresh();
+    if (games.themeId === theme) games.refresh();
   });
 }
 loadFonts();
 document.fonts.addEventListener('loadingdone', () => fitHeadline());
 
 function applyTheme(id: ThemeId) {
-  if (id === scene.themeId) return;
-  scene.setTheme(getTheme(id));
+  if (id === games.themeId) return;
+  games.setTheme(getTheme(id));
   fx.setTheme(id);
   document.body.dataset.theme = id;
   loadFonts();
@@ -150,7 +152,7 @@ function applyPhotos(urls: readonly string[], seconds: number) {
     }),
   ).then((images) => {
     if (key !== photoKey) return;
-    scene.setHubPhotos(
+    games.setPhotos(
       images.filter((img): img is HTMLImageElement => img !== null),
       seconds,
     );
@@ -175,27 +177,27 @@ function applyState(next: AppState) {
   applyPhotos(overlay.hubPhotos, overlay.hubPhotoSeconds);
   const now = performance.now();
 
-  if (next.spin && next.spin.id !== motion?.spin.id) {
+  if (next.spin && next.spin.id !== playing?.id) {
     const elapsed = Math.max(0, next.serverTime - next.spin.startedAt);
-    motion = new SpinMotion(next.spin, now - elapsed);
-    scene.setWheel(next.spin.wheel, now);
-    scene.setRotation(next.spin.fromRotation, now);
-    scene.setHighlight(null);
+    playing = { id: next.spin.id, startedAt: now - elapsed, durationMs: next.spin.durationMs };
+    games.play(next.spin, playing.startedAt, now);
+    games.setHighlight(null);
+    landed = games.update(now);
     hideResult();
     if (elapsed < 500) sound.whoosh();
   } else if (!next.spin) {
-    motion = null;
+    playing = null;
+    landed = true;
     pendingReveal = null;
-    scene.setWheel(next.display, now);
-    scene.setRotation(next.rotation, now);
-    scene.setHighlight(null);
+    games.show(next.display, next.rotation, now);
+    games.setHighlight(null);
     hideResult();
   }
 
   if (next.stage === 'result' && next.result && next.result.id !== revealedResultId) {
     revealedResultId = next.result.id;
-    if (motion && !motion.done(now)) pendingReveal = next.result;
-    else reveal(next.result, now - (motion?.startedAt ?? now) > (motion?.spin.durationMs ?? 0) + 3000);
+    if (playing && !landed) pendingReveal = next.result;
+    else reveal(next.result, now - (playing?.startedAt ?? now) > (playing?.durationMs ?? 0) + 3000);
   }
 
   if (next.stage === 'total' && next.summary && next.summary.id !== shownSummaryId) {
@@ -212,7 +214,7 @@ function applyState(next: AppState) {
 /** Final screen of a multi-spin game: the total counts up, with every spin listed. */
 function showTotal(summary: TurnSummary) {
   hideResult();
-  scene.setHighlight(null);
+  games.setHighlight(null);
   ui.total.dataset.bust = String(summary.bust);
   ui.totalEyebrow.textContent = summary.bust
     ? 'Bankrupt'
@@ -242,9 +244,9 @@ function showTotal(summary: TurnSummary) {
   }
   setTimeout(() => {
     sound.win('legendary');
-    scene.celebrate(3500);
+    games.celebrate(3500);
     const rect = stage.getBoundingClientRect();
-    const center = scene.center;
+    const center = games.center;
     fx.burst(rect.left + center.x, rect.top + center.y - center.radius * 0.4, 'legendary', rect.width / 1080);
   }, TOTAL_COUNT_MS * 0.85);
 }
@@ -355,7 +357,7 @@ function reveal(result: SpinResult, quiet = false) {
   const spin = state?.spin;
   const index = spin ? spin.segmentIndex : -1;
   const bust = Boolean(result.money?.bust);
-  scene.setHighlight(index >= 0 ? index : null, result.tier, bust);
+  games.setHighlight(index >= 0 ? index : null, result.tier, bust);
 
   const isRaffle = result.kind === 'raffle';
   const boost = armedBoost(result);
@@ -428,9 +430,9 @@ function reveal(result: SpinResult, quiet = false) {
     return;
   }
   sound.win(result.tier);
-  scene.celebrate(TIER_STYLES[result.tier].celebration * 1400);
+  games.celebrate(TIER_STYLES[result.tier].celebration * 1400);
   const rect = stage.getBoundingClientRect();
-  const center = scene.center;
+  const center = games.center;
   const scale = rect.width / 1080;
   fx.burst(rect.left + center.x, rect.top + center.y - center.radius * 0.55, result.tier, scale);
 }
@@ -453,9 +455,9 @@ function hideResult() {
 // ── Frame loop ───────────────────────────────────────────────────────────
 
 function frame(now: number) {
-  if (motion) {
-    scene.setRotation(motion.rotationAt(now), now, !motion.done(now));
-    if (pendingReveal && motion.done(now)) {
+  if (playing) {
+    landed = games.update(now);
+    if (pendingReveal && landed) {
       const result = pendingReveal;
       pendingReveal = null;
       reveal(result);
@@ -485,7 +487,7 @@ function frame(now: number) {
     setSticker(ui.totalAmount, money(shown));
   }
 
-  if (!stage.classList.contains('is-off')) scene.draw(now);
+  if (!stage.classList.contains('is-off')) games.draw(now);
   fx.draw(now);
   requestAnimationFrame(frame);
 }

@@ -1,5 +1,5 @@
 import type { ThemeId, Tier } from '../../../shared/schema';
-import type { WheelView } from '../../../shared/types';
+import type { Segment, WheelView } from '../../../shared/types';
 
 /** Where the wheel sits in the square scene canvas, in device pixels. */
 export interface SceneGeometry {
@@ -35,6 +35,38 @@ export interface HighlightStyle {
   shade?: string;
 }
 
+/** Colours and fonts the mini-games paint with, so a slot machine or a claw matches the look. */
+export interface GamePalette {
+  /** Cabinet / board body, light to dark. */
+  body: string;
+  bodyDark: string;
+  /** Metal trim: rails, frames, rims and coins. */
+  trim: string;
+  trimLight: string;
+  /** Glass and screen backgrounds behind the play area. */
+  screen: string;
+  /** Neon glow and highlights. */
+  glow: string;
+  /** Sticker lettering: fill and thick outline. */
+  text: string;
+  outline: string;
+  /** Font families for big numbers and for small labels (listed in the theme's `fonts`). */
+  display: string;
+  ui: string;
+}
+
+/** How one prize is painted (a reel symbol, a capsule, a plinko bin, a gift), matching its wheel slice. */
+export interface PrizeStyle {
+  fill: string;
+  light: string;
+  dark: string;
+  /** Lettering fill and outline. */
+  text: string;
+  outline: string;
+  /** Shiny gold (jackpot). */
+  metallic?: boolean;
+}
+
 /**
  * Everything that gives the wheel its look. The scene owns geometry, motion, the marquee chase
  * and the highlight timing; a theme only paints.
@@ -65,6 +97,10 @@ export interface WheelTheme {
   /** Pointer at 12 o'clock; `angle` is its flick in radians (negative = tip pushed left). */
   drawPointer(ctx: CanvasRenderingContext2D, g: SceneGeometry, angle: number): void;
   highlight(tier: Tier, bust: boolean): HighlightStyle;
+  /** Colours and fonts for the mini-games. */
+  readonly palette: GamePalette;
+  /** Colours of one prize in the mini-games, matching the wheel slice it would be. */
+  prizeStyle(segment: Segment, index: number, count: number): PrizeStyle;
 }
 
 /** `count` evenly spaced angles in turns, starting at 12 o'clock. */

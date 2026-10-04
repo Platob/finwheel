@@ -21,7 +21,7 @@ import {
   type Measure,
   type TangentialAmount,
 } from './glam-labels';
-import { GLAM, GLAM_CYCLE, glamSliceStyle, type GlamSliceStyle } from './glam-palette';
+import { GLAM, GLAM_CYCLE, glamSliceStyle, mix, type GlamSliceStyle } from './glam-palette';
 import { type HubOptions, type SceneGeometry, type WheelTheme } from './types';
 
 const STICKER_FONT = 'Fredoka';
@@ -688,5 +688,28 @@ export const glam: WheelTheme = {
     if (bust) return { glow: '#ff4fa3', fill: '255, 70, 160', dim: 0.48, shade };
     const precious = tier === 'legendary' || tier === 'jackpot';
     return { glow: precious ? '#ffd54f' : '#fff1b0', fill: '255, 236, 170', dim: 0.4, shade };
+  },
+  palette: {
+    body: GLAM.deepPink,
+    bodyDark: '#7d1d60',
+    trim: GLAM.rimGold,
+    trimLight: GLAM.paleGold,
+    screen: '#2a0a22',
+    glow: '#ff5fa8',
+    text: '#ffffff',
+    outline: GLAM.plum,
+    display: STICKER_FONT,
+    ui: STICKER_FONT,
+  },
+  prizeStyle: (segment, index, count) => {
+    const style = glamSliceStyle(segment, index, count);
+    return {
+      fill: style.base,
+      light: mix(style.base, '#ffffff', 0.35),
+      dark: style.inner,
+      text: style.text,
+      outline: style.stroke,
+      ...(style.metallic ? { metallic: true } : {}),
+    };
   },
 };

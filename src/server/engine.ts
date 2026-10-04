@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
+import { GAME_PACE } from '../shared/constants.js';
 import { computeArcs, landingRotation, mod1 } from '../shared/geometry.js';
 import { applyPrize, formatMoney, logChip, startTurn, type Turn } from '../shared/rules.js';
 import type { Config } from '../shared/schema.js';
@@ -319,6 +320,7 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
       name: 'Grand Raffle',
       subtitle: `${entrants.length} ${entrants.length === 1 ? 'entrant' : 'entrants'} · ${tickets} tickets`,
       sizing: 'weight',
+      game: 'wheel',
       money: false,
       segments: entrants.map((e) => ({
         id: e.login,
@@ -340,6 +342,7 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
         name: 'FinWheel',
         subtitle: '',
         sizing: 'equal',
+        game: 'wheel',
         money: false,
         segments: [],
       }
@@ -409,7 +412,8 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
       segmentIndex,
       fromRotation,
       toRotation: landingRotation(fromRotation, arc, landing, turns),
-      durationMs: Math.round(durationMs * (0.92 + this.random() * 0.16)),
+      durationMs: Math.round(durationMs * GAME_PACE[view.game] * (0.92 + this.random() * 0.16)),
+      seed: Math.floor(this.random() * 2 ** 32),
       startedAt: Date.now(),
       turn: this.turnView(),
     };

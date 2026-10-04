@@ -572,4 +572,27 @@ export const casino: WheelTheme = {
     fill: bust ? '255, 40, 80' : '255, 200, 90',
     dim: 0.5,
   }),
+  palette: {
+    body: '#7a1530',
+    bodyDark: '#33060f',
+    trim: '#d4af37',
+    trimLight: '#fff3c4',
+    screen: '#0b0b0e',
+    glow: '#f3dc8a',
+    text: '#f6eedb',
+    outline: '#120a02',
+    display: DISPLAY_FONT,
+    ui: UI_FONT,
+  },
+  prizeStyle: (segment, index, count) => {
+    const style = sliceStyle(segment, index, count);
+    return {
+      fill: style.base,
+      light: style.edge,
+      dark: style.inner,
+      text: style.text,
+      outline: 'rgba(0, 0, 0, 0.85)',
+      ...(style.metallic ? { metallic: true } : {}),
+    };
+  },
 };

@@ -9,3 +9,13 @@ export const MAX_HUB_PHOTOS = 12;
 export const MAX_PHOTO_URL = 500;
 /** "//host" is a URL on another site, not a path. */
 export const PHOTO_URL = /^(https?:\/\/|\/(?!\/))\S+$/i;
+/** How a wheel's prizes are played on the overlay: the classic wheel or one of the mini-games. */
+export const GAMES = ['wheel', 'slots', 'claw', 'plinko', 'gifts'] as const;
+/** Length of a play relative to the spin duration setting (slots are snappier than a wheel). */
+export const GAME_PACE: Record<(typeof GAMES)[number], number> = {
+  wheel: 1,
+  slots: 0.7,
+  claw: 1,
+  plinko: 0.85,
+  gifts: 0.9,
+};

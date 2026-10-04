@@ -10,6 +10,7 @@ export function prizeWheelView(wheel: Wheel, currency: Settings['currency']): Wh
     name: wheel.name,
     subtitle: wheel.subtitle,
     sizing: wheel.sizing,
+    game: wheel.game,
     money: isMoneyWheel(wheel),
     segments: availablePrizes(wheel).map((p) => {
       const effect = slotEffect(p);
@@ -20,6 +21,7 @@ export function prizeWheelView(wheel: Wheel, currency: Settings['currency']): Wh
         weight: p.weight,
         tier: p.tier,
         ...(p.color ? { color: p.color } : {}),
+        ...(p.icon ? { icon: p.icon } : {}),
         ...(p.bust ? { bust: true } : {}),
         ...slotText(p, currency),
         ...(effect ? { effect } : {}),

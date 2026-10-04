@@ -152,6 +152,16 @@ export class SoundBoard {
     });
   }
 
+  /**
+   * Plays a custom synthesized sound: `play` wires its nodes into `out` (master volume) starting at
+   * `t`. Does nothing while sound is off. The mini-games define their sounds this way.
+   */
+  voice(play: (ctx: AudioContext, out: AudioNode, t: number) => void): void {
+    const ctx = this.context();
+    if (!ctx || !this.master) return;
+    play(ctx, this.master, ctx.currentTime);
+  }
+
   private context(): AudioContext | null {
     if (!this.enabled) return null;
     if (!this.ctx) {
