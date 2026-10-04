@@ -8,11 +8,12 @@ import '@fontsource/inter/700.css';
 import '@fontsource/lilita-one/400.css';
 import '../common/theme.css';
 import './overlay.css';
+import './overlay-glam.css';
 
 import { formatMoney } from '../../shared/rules';
 import { TIER_STYLES } from '../../shared/tiers';
 import type { ThemeId } from '../../shared/schema';
-import type { AppState, SpinResult, TurnSummary, WheelView } from '../../shared/types';
+import type { AppState, Segment, SpinResult, TurnSummary, TurnView, WheelView } from '../../shared/types';
 import { connect } from '../common/socket';
 import { SoundBoard } from './audio';
 import { Celebration } from './fx';
@@ -23,6 +24,8 @@ import { WheelScene } from './wheel-scene';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
 if (params.has('preview')) document.body.classList.add('preview');
+/** `?backdrop` paints the theme's backdrop behind the wheel, for scenes without one. */
+if (params.has('backdrop')) document.body.classList.add('backdrop');
 const muted = params.get('mute') === '1';
 /** `?theme=casino` forces a look on one browser source, whatever the dock says. */
 const forcedTheme = parseTheme(params.get('theme'));
@@ -56,6 +59,15 @@ const ui = {
   raffle: $('raffle'),
   raffleKeyword: $('raffle-keyword'),
   raffleCount: $('raffle-count'),
+  headline: $('headline-title'),
+  headlineText: $('headline-text'),
+  headlineStatus: $('headline-status'),
+  stats: $('stats'),
+  statSpins: $('stat-spins'),
+  statTotal: $('stat-total'),
+  statTotalBox: $('stat-total-box'),
+  statNext: $('stat-next'),
+  statNextBox: $('stat-next-box'),
 };
 
 let state: AppState | null = null;
@@ -64,6 +76,7 @@ let revealedResultId: string | null = null;
 let pendingReveal: SpinResult | null = null;
 let bankShown = 0;
 let bankTarget = 0;
+let nextShown = 1;
 let shownSummaryId: string | null = null;
 let totalCount: { target: number; start: number } | null = null;
 const TOTAL_COUNT_MS = 1400;
@@ -78,6 +91,7 @@ function layout() {
   stage.style.setProperty('--u', `${size / 100}px`);
   scene.resize(size, dpr);
   fx.resize(window.innerWidth, window.innerHeight, dpr);
+  fitHeadline();
 }
 window.addEventListener('resize', layout);
 layout();
@@ -90,6 +104,7 @@ function loadFonts() {
   });
 }
 loadFonts();
+document.fonts.addEventListener('loadingdone', () => fitHeadline());
 
 function applyTheme(id: ThemeId) {
   if (id === scene.themeId) return;
@@ -97,6 +112,7 @@ function applyTheme(id: ThemeId) {
   fx.setTheme(id);
   document.body.dataset.theme = id;
   loadFonts();
+  fitHeadline();
 }
 
 // ── Centre photos ────────────────────────────────────────────────────────
@@ -230,22 +246,34 @@ function updateChrome(s: AppState) {
   const wheel = currentWheel();
   const { overlay } = s.config.settings;
   const player = s.spin?.player;
-  ui.plaqueTitle.textContent = wheel?.name ?? '';
-  ui.plaqueSub.textContent = player ? `Spinning for ${player}` : (wheel?.subtitle ?? '');
+  const name = wheel?.name ?? '';
+  const status = player ? `Spinning for ${player}` : (wheel?.subtitle ?? '');
+  ui.plaqueTitle.textContent = name;
+  ui.plaqueSub.textContent = status;
+  ui.headlineStatus.textContent = status;
+  if (ui.headlineText.textContent !== name) {
+    setSticker(ui.headlineText, name);
+    ui.headline.dataset.text = name;
+    fitHeadline();
+  }
 
-  // Bank badge for money turns
+  // Bank badge and stat row for money turns
   const turn = s.turn;
   const showBank = Boolean(turn?.money);
   ui.bank.classList.toggle('is-visible', showBank);
+  ui.stats.classList.toggle('is-visible', showBank);
   if (turn && showBank) {
     ui.bankEyebrow.textContent = `Bank · Spin ${turn.spinNumber} of ${turn.spinsPlanned}`;
     // A late reveal updates the bank itself, so the total never spoils the result.
-    if (!pendingReveal) setBank(turn.total, s.stage !== 'spinning');
+    if (!pendingReveal) {
+      setBank(turn.total, s.stage !== 'spinning');
+      setTurnStats(turn);
+    }
   }
 
   const raffle = s.raffle;
   ui.raffle.classList.toggle('is-visible', raffle.open && overlay.showRaffleBadge);
-  ui.raffleKeyword.textContent = raffle.keyword;
+  setSticker(ui.raffleKeyword, raffle.keyword);
   ui.raffleCount.textContent = `· ${raffle.entrants.length}`;
 
   const idle = s.stage === 'idle';
@@ -258,11 +286,42 @@ function setBank(value: number, animate = true) {
   if (value === bankTarget) return;
   bankTarget = value;
   if (!animate) bankShown = value;
-  ui.bank.classList.remove('is-bump');
-  if (animate) {
-    void ui.bank.offsetWidth;
-    ui.bank.classList.add('is-bump');
-  }
+  bump(ui.bank, animate);
+  bump(ui.statTotalBox, animate);
+}
+
+/** Restarts the `is-bump` animation of an element (or just clears it). */
+function bump(el: HTMLElement, animate = true) {
+  el.classList.remove('is-bump');
+  if (!animate) return;
+  void el.offsetWidth;
+  el.classList.add('is-bump');
+}
+
+/** Text drawn with an outline: the outline layer repeats the text from `data-text`. */
+function setSticker(el: HTMLElement, text: string) {
+  if (el.textContent === text && el.dataset.text === text) return;
+  el.textContent = text;
+  el.dataset.text = text;
+}
+
+/** Spins left and the "×N next spin" boost of the stat row; the boost pops when it is armed. */
+function setTurnStats(turn: TurnView) {
+  const next = turn.nextMultiplier;
+  setSticker(ui.statSpins, String(Math.max(0, turn.spinsPlanned - turn.spinNumber)));
+  setSticker(ui.statNext, `×${next}`);
+  ui.statNextBox.classList.toggle('is-armed', next > 1);
+  if (next !== nextShown) bump(ui.statNextBox, next > 1);
+  nextShown = next;
+}
+
+/** Shrinks the headline so long wheel names stay on one line. */
+function fitHeadline() {
+  const el = ui.headline;
+  el.style.removeProperty('--fit');
+  const max = stage.clientWidth * 0.9;
+  const width = el.offsetWidth;
+  if (width > max) el.style.setProperty('--fit', (max / width).toFixed(3));
 }
 
 function reveal(result: SpinResult, quiet = false) {
@@ -272,35 +331,46 @@ function reveal(result: SpinResult, quiet = false) {
   scene.setHighlight(index >= 0 ? index : null, result.tier, bust);
 
   const isRaffle = result.kind === 'raffle';
+  const boost = armedBoost(result, spin?.wheel.segments[index]);
   ui.result.dataset.tier = result.tier;
   ui.result.dataset.bust = String(bust);
+  ui.result.dataset.boost = String(boost > 1);
   ui.resultEyebrow.textContent = bust
     ? 'Bankrupt'
     : isRaffle
       ? 'Raffle winner'
       : result.payout !== null
         ? 'Cash out'
-        : result.player
-          ? 'Winner'
-          : 'The wheel has spoken';
+        : boost > 1
+          ? 'Boost!'
+          : result.player
+            ? 'Winner'
+            : 'The wheel has spoken';
   ui.resultPlayer.textContent = !isRaffle && result.player ? result.player : '';
-  ui.resultPrize.textContent = result.label;
+  setSticker(ui.resultPrize, result.label);
   const emptyMultiplier = result.money && !bust && result.money.multiplier > 1 && result.money.before === 0;
   ui.resultDesc.textContent = isRaffle
     ? 'Congratulations!'
-    : emptyMultiplier
-      ? 'Nothing in the bank to multiply yet'
-      : bust && result.money?.before === 0
-        ? 'Lucky break — nothing in the bank to lose'
-        : result.description;
+    : boost > 1
+      ? result.description || `Your next spin pays ×${boost}`
+      : emptyMultiplier
+        ? 'Nothing in the bank to multiply yet'
+        : bust && result.money?.before === 0
+          ? 'Lucky break — nothing in the bank to lose'
+          : result.description;
 
   ui.resultBank.innerHTML = '';
   if (result.money && !(bust && result.money.before === 0)) {
     const { before, after, multiplier } = result.money;
     const label = bust ? 'Lost' : result.payout !== null ? 'Final total' : 'Total';
     const amount = bust ? before : after;
+    const boosted = result.money.boost > 1 ? ` · ×${result.money.boost} boost` : '';
     const delta =
-      bust || before === after ? '' : multiplier !== 1 ? `×${multiplier}` : `+${money(after - before)}`;
+      bust || before === after
+        ? ''
+        : multiplier !== 1
+          ? `×${multiplier}`
+          : `+${money(after - before)}${boosted}`;
     ui.resultBank.innerHTML = `<span>${label}</span><strong>${money(amount)}</strong>${delta ? `<em>${delta}</em>` : ''}`;
   }
 
@@ -317,6 +387,8 @@ function reveal(result: SpinResult, quiet = false) {
   if (result.money) {
     setBank(result.money.after);
     ui.bank.classList.toggle('is-bust', bust);
+    ui.statTotalBox.classList.toggle('is-bust', bust);
+    if (state?.turn?.money) setTurnStats(state.turn);
   }
   if (quiet) return;
 
@@ -332,9 +404,20 @@ function reveal(result: SpinResult, quiet = false) {
   fx.burst(rect.left + center.x, rect.top + center.y - center.radius * 0.55, result.tier, scale);
 }
 
+/**
+ * Boost this result armed for the next spin (1 = none): a "×N next" slice without cash, on a turn
+ * that goes on. A boost carried over from an earlier spin does not count.
+ */
+function armedBoost(result: SpinResult, segment: Segment | undefined): number {
+  const m = result.money;
+  if (!m || m.bust || m.cash !== 0 || result.payout !== null) return 1;
+  return !segment || segment.effect === 'next' ? m.nextMultiplier : 1;
+}
+
 function hideResult() {
   ui.result.classList.remove('is-visible');
   ui.bank.classList.remove('is-bust');
+  ui.statTotalBox.classList.remove('is-bust');
 }
 
 // ── Frame loop ───────────────────────────────────────────────────────────
@@ -356,7 +439,9 @@ function frame(now: number) {
         : Math.max(bankTarget, bankShown - step);
     if (Math.abs(bankTarget - bankShown) < 0.01) bankShown = bankTarget;
   }
-  ui.bankValue.textContent = money(Number.isInteger(bankTarget) ? Math.round(bankShown) : bankShown);
+  const bank = money(Number.isInteger(bankTarget) ? Math.round(bankShown) : bankShown);
+  ui.bankValue.textContent = bank;
+  setSticker(ui.statTotal, bank);
   if (totalCount) {
     const t = Math.min(1, (now - totalCount.start) / TOTAL_COUNT_MS);
     const eased = 1 - (1 - t) ** 3;
@@ -367,7 +452,7 @@ function frame(now: number) {
         : Number.isInteger(totalCount.target)
           ? Math.round(value)
           : Math.round(value * 100) / 100;
-    ui.totalAmount.textContent = money(shown);
+    setSticker(ui.totalAmount, money(shown));
   }
 
   if (!stage.classList.contains('is-off')) scene.draw(now);

@@ -11,6 +11,61 @@
       <div class="wheel-group">
         <canvas class="wheel" id="wheel"></canvas>
 
+        <header class="headline" id="headline">
+          <svg class="headline-crown" viewBox="0 0 120 84" aria-hidden="true">
+            <defs>
+              <linearGradient id="crown-gold" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fff3b8" />
+                <stop offset="0.45" stop-color="#f6cf4c" />
+                <stop offset="1" stop-color="#e2a52a" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M18 70 L11 24 L38 46 L60 12 L82 46 L109 24 L102 70 Z"
+              fill="url(#crown-gold)"
+              stroke="#fff6cf"
+              stroke-width="5"
+              stroke-linejoin="round"
+            />
+            <rect
+              x="16"
+              y="62"
+              width="88"
+              height="15"
+              rx="5"
+              fill="#eab23a"
+              stroke="#fff6cf"
+              stroke-width="4"
+            />
+            <circle cx="11" cy="22" r="7" fill="#e8559f" stroke="#fff6cf" stroke-width="3" />
+            <circle cx="60" cy="11" r="8" fill="#e8559f" stroke="#fff6cf" stroke-width="3" />
+            <circle cx="109" cy="22" r="7" fill="#e8559f" stroke="#fff6cf" stroke-width="3" />
+            <circle cx="40" cy="69.5" r="3.6" fill="#d63a8a" />
+            <circle cx="60" cy="69.5" r="4.2" fill="#e8559f" />
+            <circle cx="80" cy="69.5" r="3.6" fill="#d63a8a" />
+          </svg>
+          <h1 class="headline-title" id="headline-title">
+            <span class="headline-text" id="headline-text"></span>
+            <i class="headline-heart headline-heart--start"></i>
+            <i class="headline-heart headline-heart--end"></i>
+          </h1>
+          <div class="stats" id="stats">
+            <div class="stat">
+              <strong class="sticker" id="stat-spins">0</strong>
+              <span>spins left</span>
+            </div>
+            <div class="stat" id="stat-total-box">
+              <strong class="sticker" id="stat-total">$0</strong>
+              <span>total</span>
+            </div>
+            <div class="stat" id="stat-next-box">
+              <strong class="sticker" id="stat-next">×1</strong>
+              <span>next spin</span>
+            </div>
+          </div>
+          <div class="headline-status" id="headline-status"></div>
+        </header>
+
         <div class="sign plaque" id="plaque">
           <div class="sign-inner">
             <div class="plaque-title" id="plaque-title"></div>
@@ -22,7 +77,7 @@
           <div class="result-eyebrow" id="result-eyebrow"></div>
           <div class="result-player" id="result-player"></div>
           <div class="result-rule"><span></span><i></i><span></span></div>
-          <div class="result-prize" id="result-prize"></div>
+          <div class="result-prize sticker" id="result-prize"></div>
           <div class="result-desc" id="result-desc"></div>
           <div class="result-bank" id="result-bank"></div>
           <div class="result-next" id="result-next"></div>
@@ -32,7 +87,7 @@
           <div class="result-eyebrow" id="total-eyebrow">Total winnings</div>
           <div class="result-player" id="total-player"></div>
           <div class="result-rule"><span></span><i></i><span></span></div>
-          <div class="total-amount" id="total-amount"></div>
+          <div class="total-amount sticker" id="total-amount"></div>
           <ol class="total-log" id="total-log"></ol>
           <div class="result-next" id="total-foot"></div>
         </section>
@@ -49,7 +104,7 @@
         <div class="sign-inner">
           <div class="badge-eyebrow"><span class="live-dot"></span>Raffle open</div>
           <div class="badge-value">
-            <span id="raffle-keyword">!join</span> <small id="raffle-count"></small>
+            <span class="sticker" id="raffle-keyword">!join</span> <small id="raffle-count"></small>
           </div>
         </div>
       </div>

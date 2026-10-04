@@ -1,0 +1,548 @@
+/* FinWheel — "glam" chrome (pink & gold), layered over overlay.css when body[data-theme='glam']. */
+
+body:not([data-theme='glam']) .headline {
+  display: none;
+}
+
+[data-theme='glam'] {
+  --g-hot: #e8559f;
+  --g-deep: #d63a8a;
+  --g-pink: #f27fba;
+  --g-light: #f7b2d3;
+  --g-cream: #f9ebe1;
+  --g-gold: #f4c656;
+  --g-rim: #efc24a;
+  --g-pale: #fff1b0;
+  --g-yellow: #ffe8a3;
+  --g-lavender: #a46ae6;
+  --g-plum: #3a0c2c;
+  --g-magenta: #7d1d60;
+  --g-magenta-deep: #5e1249;
+  --g-font: 'Fredoka', 'Nunito', system-ui, sans-serif;
+  --g-font-title: 'Lilita One', 'Fredoka', system-ui, sans-serif;
+  --g-gold-border: linear-gradient(135deg, #fff1b0 0%, #efc24a 28%, #c98d1f 52%, #fde08a 76%, #e2a52a 100%);
+  --g-box: linear-gradient(165deg, #cc4596 0%, #a92a7a 52%, #8b1f66 100%);
+  font-family: var(--g-font);
+}
+
+/* ?preview / ?backdrop: magenta stripes with faint crowns, hearts, "$" and sparkles. */
+body.preview[data-theme='glam'],
+body.backdrop[data-theme='glam'] {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600' fill='none' stroke='rgba(255,196,232,0.2)' stroke-width='3' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M54 118 L48 74 L74 94 L90 62 L106 94 L132 74 L126 118 Z M54 118 H126 V130 H54 Z'/%3E%3Cpath d='M440 174 C422 162 416 153 416 144 C416 137 421 132 427 132 C432 132 438 135 440 139 C442 135 448 132 453 132 C459 132 464 137 464 144 C464 153 458 162 440 174 Z'/%3E%3Cpath d='M315.4 384.6 C311 378 304.4 375.8 297.8 375.8 C289 375.8 284.6 381.3 285.7 387.9 C286.8 394.5 294.5 396.7 301.1 398.9 C308.8 401.1 315.4 404.4 314.3 412.1 C313.2 418.7 306.6 422 298.9 422 C291.2 422 285.7 418.7 282.4 413.2 M300 367 V430.8'/%3E%3Cpath d='M120 448 Q123 467 142 470 Q123 473 120 492 Q117 473 98 470 Q117 467 120 448 Z' fill='rgba(255,220,242,0.24)' stroke='none'/%3E%3Cpath d='M520 506.8 Q521.8 518.2 533.2 520 Q521.8 521.8 520 533.2 Q518.2 521.8 506.8 520 Q518.2 518.2 520 506.8 Z' fill='rgba(255,220,242,0.24)' stroke='none'/%3E%3Cpath d='M540 342 C531 336 528 331.5 528 327 C528 323.5 530.5 321 533.5 321 C536 321 539 322.5 540 324.5 C541 322.5 544 321 546.5 321 C549.5 321 552 323.5 552 327 C552 331.5 549 336 540 342 Z' fill='rgba(255,150,205,0.12)'/%3E%3C/svg%3E")
+      0 0 / 56vmin 56vmin,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600' fill='none' stroke='rgba(255,196,232,0.15)' stroke-width='3.5' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M401.2 472.4 L396.4 437.2 L417.2 453.2 L430 427.6 L442.8 453.2 L463.6 437.2 L458.8 472.4 Z M401.2 472.4 H458.8 V482 H401.2 Z'/%3E%3Cpath d='M121.2 138.8 C118 134 113.2 132.4 108.4 132.4 C102 132.4 98.8 136.4 99.6 141.2 C100.4 146 106 147.6 110.8 149.2 C116.4 150.8 121.2 153.2 120.4 158.8 C119.6 163.6 114.8 166 109.2 166 C103.6 166 99.6 163.6 97.2 159.6 M110 126 V172.4'/%3E%3Cpath d='M170 446.8 C157.4 438.4 153.2 432.1 153.2 425.8 C153.2 420.9 156.7 417.4 160.9 417.4 C164.4 417.4 168.6 419.5 170 422.3 C171.4 419.5 175.6 417.4 179.1 417.4 C183.3 417.4 186.8 420.9 186.8 425.8 C186.8 432.1 182.6 438.4 170 446.8 Z'/%3E%3Cpath d='M300 222.4 Q302.4 237.6 317.6 240 Q302.4 242.4 300 257.6 Q297.6 242.4 282.4 240 Q297.6 237.6 300 222.4 Z' fill='rgba(255,220,242,0.24)' stroke='none'/%3E%3Cpath d='M520 87.9 Q521.65 98.35 532.1 100 Q521.65 101.65 520 112.1 Q518.35 101.65 507.9 100 Q518.35 98.35 520 87.9 Z' fill='rgba(255,220,242,0.24)' stroke='none'/%3E%3C/svg%3E")
+      28vmin 33vmin / 77vmin 77vmin,
+    radial-gradient(ellipse 60% 55% at 50% 60%, rgba(255, 112, 192, 0.24), transparent 70%),
+    repeating-linear-gradient(-62deg, rgba(255, 255, 255, 0.055) 0 7vmin, rgba(40, 0, 30, 0.05) 7vmin 14vmin),
+    linear-gradient(180deg, #8e2672 0%, #7d1d60 42%, #5e1249 100%);
+}
+
+/* The casino plaque and bank badge give way to the headline. */
+[data-theme='glam'] .plaque,
+[data-theme='glam'] .badge--bank {
+  display: none;
+}
+
+[data-theme='glam'] .wheel-group {
+  transform-origin: 50% 61.5%;
+}
+
+/* ── Sticker text: white fill over a thick plum outline (`data-text` repeats the text) ── */
+
+[data-theme='glam'] .sticker {
+  --stroke: 0.18em;
+  --stroke-color: var(--g-plum);
+  position: relative;
+  z-index: 0;
+  color: #fff;
+}
+
+[data-theme='glam'] .sticker::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  color: var(--stroke-color);
+  -webkit-text-stroke: var(--stroke) var(--stroke-color);
+  filter: drop-shadow(0 0.05em 0.06em rgba(40, 0, 28, 0.45));
+}
+
+/* ── Headline: crown, title, stat row, status ───────────────────────── */
+
+.headline-crown {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: calc(var(--u) * 6.6);
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 calc(var(--u) * 0.9) rgba(255, 214, 110, 0.55))
+    drop-shadow(0 calc(var(--u) * 0.25) calc(var(--u) * 0.3) rgba(60, 0, 40, 0.45));
+}
+
+.headline-title {
+  position: absolute;
+  left: 50%;
+  top: 3.4%;
+  z-index: 0;
+  margin: 0;
+  transform: translateX(-50%) scale(var(--fit, 1));
+  font-family: var(--g-font-title);
+  font-weight: 400;
+  font-size: calc(var(--u) * 6.8);
+  line-height: 1;
+  letter-spacing: 0.015em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  filter: drop-shadow(0 0 calc(var(--u) * 1.3) rgba(255, 96, 184, 0.7));
+}
+
+/* Outer magenta outline, behind the hot-pink one. */
+.headline-title::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  color: #8c1a61;
+  -webkit-text-stroke: 0.32em #8c1a61;
+}
+
+.headline-text {
+  position: relative;
+  z-index: 0;
+  display: inline-block;
+  color: #fff;
+}
+
+.headline-text::before,
+.headline-text::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+}
+
+.headline-text::before {
+  z-index: -1;
+  color: var(--g-hot);
+  -webkit-text-stroke: 0.2em var(--g-hot);
+}
+
+/* White to pale-pink fill. */
+.headline-text::after {
+  background: linear-gradient(180deg, #fff 0%, #fff8fc 38%, #ffd3ea 72%, #f9b8db 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.headline-heart {
+  position: absolute;
+  width: 0.36em;
+  height: 0.33em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M12 20.5C5 15.8 1.5 12 1.5 7.4 1.5 4 4 1.5 7.1 1.5c2.1 0 3.9 1.2 4.9 2.9 1-1.7 2.8-2.9 4.9-2.9 3.1 0 5.6 2.5 5.6 5.9 0 4.6-3.5 8.4-10.5 13.1Z' fill='%23f0609f' stroke='%23a3256f' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cellipse cx='7.4' cy='6.4' rx='2.2' ry='1.3' transform='rotate(-35 7.4 6.4)' fill='%23fff' opacity='0.7'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  filter: drop-shadow(0 0 0.06em rgba(255, 255, 255, 0.6));
+}
+
+.headline-heart--start {
+  left: -0.12em;
+  top: -0.06em;
+  transform: rotate(-18deg);
+}
+
+.headline-heart--end {
+  right: -0.34em;
+  bottom: -0.02em;
+  transform: rotate(16deg);
+}
+
+.stats {
+  position: absolute;
+  left: 50%;
+  top: 10.5%;
+  height: 8.5%;
+  display: grid;
+  grid-template-columns: repeat(3, calc(var(--u) * 22));
+  gap: calc(var(--u) * 2.4);
+  transform: translateX(-50%);
+  transition:
+    opacity 400ms ease,
+    visibility 400ms;
+}
+
+.stats:not(.is-visible) {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 0.3);
+  border: calc(var(--u) * 0.26) solid transparent;
+  border-radius: calc(var(--u) * 1.8);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 45%) padding-box,
+    var(--g-box) padding-box,
+    var(--g-gold-border) border-box;
+  box-shadow:
+    0 calc(var(--u) * 0.5) calc(var(--u) * 1.2) rgba(40, 0, 28, 0.45),
+    0 0 calc(var(--u) * 1.4) rgba(255, 96, 184, 0.25);
+  transition:
+    background 400ms ease,
+    box-shadow 400ms ease;
+}
+
+.stat strong {
+  font-weight: 700;
+  font-size: calc(var(--u) * 4.4);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stat span {
+  font-weight: 600;
+  font-size: calc(var(--u) * 1.95);
+  line-height: 1.1;
+  color: #fff;
+  text-shadow: 0 calc(var(--u) * 0.12) calc(var(--u) * 0.3) rgba(58, 12, 44, 0.55);
+}
+
+.stat.is-bump strong {
+  animation: bump 600ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+.stat.is-bust strong {
+  color: var(--g-hot);
+}
+
+/* A "×N next" boost waiting for the next spin. */
+.stat.is-armed {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 45%) padding-box,
+    linear-gradient(165deg, #be8cf3 0%, #9a5fe0 52%, #7440c0 100%) padding-box,
+    var(--g-gold-border) border-box;
+  box-shadow:
+    0 calc(var(--u) * 0.5) calc(var(--u) * 1.2) rgba(40, 0, 28, 0.45),
+    0 0 calc(var(--u) * 2.4) rgba(200, 150, 255, 0.8);
+}
+
+.stat.is-armed.is-bump strong {
+  animation: pop 900ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+.headline-status {
+  position: absolute;
+  left: 50%;
+  top: 19.3%;
+  max-width: calc(var(--u) * 80);
+  transform: translateX(-50%);
+  font-weight: 600;
+  font-size: calc(var(--u) * 2.3);
+  line-height: calc(var(--u) * 2.7);
+  color: var(--g-yellow);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow:
+    0 calc(var(--u) * 0.15) calc(var(--u) * 0.4) rgba(50, 0, 35, 0.75),
+    0 0 calc(var(--u) * 1) rgba(255, 96, 184, 0.45);
+}
+
+/* ── Raffle badge (bottom right, clear of the wheel) ─────────────────── */
+
+[data-theme='glam'] .badge--raffle {
+  top: auto;
+  right: 1.6%;
+  bottom: 1.6%;
+  min-width: calc(var(--u) * 20);
+  padding: 0;
+  background: none;
+  clip-path: none;
+  filter: drop-shadow(0 calc(var(--u) * 0.5) calc(var(--u) * 0.8) rgba(40, 0, 28, 0.5));
+}
+
+[data-theme='glam'] .badge--raffle:not(.is-visible) {
+  transform: translateY(calc(var(--u) * 2));
+}
+
+[data-theme='glam'] .badge--raffle .sign-inner {
+  padding: calc(var(--u) * 0.9) calc(var(--u) * 2.2) calc(var(--u) * 1);
+  border: calc(var(--u) * 0.26) solid transparent;
+  border-radius: calc(var(--u) * 2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 45%) padding-box,
+    var(--g-box) padding-box,
+    var(--g-gold-border) border-box;
+  clip-path: none;
+  box-shadow: 0 0 calc(var(--u) * 1.6) rgba(255, 96, 184, 0.4);
+}
+
+[data-theme='glam'] .badge--raffle .sign-inner::after {
+  display: none;
+}
+
+[data-theme='glam'] .badge-eyebrow {
+  font-size: calc(var(--u) * 1.35);
+  letter-spacing: 0.2em;
+  color: var(--g-yellow);
+}
+
+[data-theme='glam'] .live-dot {
+  background: #ff4f9a;
+  box-shadow: 0 0 calc(var(--u) * 0.9) #ff4f9a;
+}
+
+[data-theme='glam'] .badge-value {
+  margin-top: calc(var(--u) * 0.35);
+  font-family: var(--g-font);
+  font-weight: 700;
+  font-size: calc(var(--u) * 3.4);
+}
+
+[data-theme='glam'] #raffle-keyword {
+  font-family: var(--g-font);
+  font-weight: 700;
+  font-size: calc(var(--u) * 3.4);
+  letter-spacing: 0.01em;
+}
+
+[data-theme='glam'] .badge-value small {
+  font-family: var(--g-font);
+  font-size: calc(var(--u) * 1.9);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--g-light);
+}
+
+/* ── Result card ───────────────────────────────────────────────────── */
+
+[data-theme='glam'] .result {
+  --accent: var(--g-light);
+  top: 61.5%;
+  width: calc(var(--u) * 60);
+  border-width: calc(var(--u) * 0.4);
+  border-radius: calc(var(--u) * 3.4);
+  background:
+    radial-gradient(110% 80% at 50% 0%, rgba(255, 150, 210, 0.32), transparent 62%) padding-box,
+    linear-gradient(172deg, #b9297f 0%, #8d1d68 42%, #5a0f44 78%, #470b36 100%) padding-box,
+    var(--g-gold-border) border-box;
+  box-shadow:
+    0 0 calc(var(--u) * 4.5) rgba(255, 86, 172, 0.6),
+    0 calc(var(--u) * 2) calc(var(--u) * 5) rgba(25, 0, 18, 0.6);
+}
+
+[data-theme='glam'] .result::before {
+  inset: calc(var(--u) * 0.7);
+  border-color: rgba(255, 241, 176, 0.35);
+  border-radius: calc(var(--u) * 2.7);
+}
+
+[data-theme='glam'] .result[data-tier='rare'] {
+  --accent: #8fd8ff;
+}
+[data-theme='glam'] .result[data-tier='epic'] {
+  --accent: #d2a8ff;
+}
+[data-theme='glam'] .result[data-tier='legendary'] {
+  --accent: #ffd66e;
+}
+[data-theme='glam'] .result[data-tier='jackpot'] {
+  --accent: #ffe48a;
+}
+[data-theme='glam'] .result[data-boost='true'] {
+  --accent: #d2a8ff;
+  box-shadow:
+    0 0 calc(var(--u) * 4.5) rgba(190, 130, 255, 0.7),
+    0 calc(var(--u) * 2) calc(var(--u) * 5) rgba(25, 0, 18, 0.6);
+}
+[data-theme='glam'] .result[data-bust='true'] {
+  --accent: var(--g-hot);
+  background:
+    radial-gradient(110% 80% at 50% 0%, rgba(232, 85, 159, 0.22), transparent 62%) padding-box,
+    linear-gradient(172deg, #3d0c2f 0%, #250720 55%, #16040f 100%) padding-box,
+    var(--g-gold-border) border-box;
+}
+
+[data-theme='glam'] .result-eyebrow {
+  font-size: calc(var(--u) * 1.6);
+  letter-spacing: 0.32em;
+  color: var(--g-yellow);
+}
+
+[data-theme='glam'] .result[data-boost='true'] .result-eyebrow,
+[data-theme='glam'] .result[data-bust='true'] .result-eyebrow {
+  color: var(--accent);
+}
+
+[data-theme='glam'] .result-player {
+  font-family: var(--g-font);
+  font-weight: 600;
+  font-size: calc(var(--u) * 2.8);
+  color: #fff;
+}
+
+[data-theme='glam'] .result-rule span {
+  background: linear-gradient(90deg, transparent, var(--g-gold), transparent);
+}
+
+/* A heart in place of the casino diamond. */
+[data-theme='glam'] .result-rule i {
+  width: calc(var(--u) * 1.7);
+  height: calc(var(--u) * 1.55);
+  transform: none;
+  box-shadow: none;
+  background: var(--accent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M12 21C5 16.2 1 12.2 1 7.4 1 3.8 3.7 1 7.1 1c2.1 0 3.9 1.1 4.9 2.8C13 2.1 14.8 1 16.9 1 20.3 1 23 3.8 23 7.4c0 4.8-4 8.8-11 13.6Z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M12 21C5 16.2 1 12.2 1 7.4 1 3.8 3.7 1 7.1 1c2.1 0 3.9 1.1 4.9 2.8C13 2.1 14.8 1 16.9 1 20.3 1 23 3.8 23 7.4c0 4.8-4 8.8-11 13.6Z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+[data-theme='glam'] .result-prize {
+  --stroke: 0.17em;
+  font-family: var(--g-font);
+  font-weight: 700;
+  font-size: calc(var(--u) * 6.2);
+  line-height: 1.12;
+  letter-spacing: 0.01em;
+  background: none;
+  color: #fff;
+  filter: drop-shadow(0 0 calc(var(--u) * 1.2) rgba(255, 110, 190, 0.55));
+}
+
+[data-theme='glam'] .result.is-visible .result-prize {
+  animation: pop 700ms cubic-bezier(0.2, 0.9, 0.3, 1.4) 0.15s both;
+}
+
+[data-theme='glam'] .result[data-bust='true'] .result-prize {
+  background: none;
+  color: var(--g-hot);
+}
+
+[data-theme='glam'] .result-desc {
+  font-weight: 500;
+  font-size: calc(var(--u) * 2);
+  color: #ffe3f1;
+  opacity: 1;
+}
+
+[data-theme='glam'] .result-bank {
+  align-items: center;
+  border: 1px solid rgba(255, 241, 176, 0.45);
+  border-radius: 999px;
+  padding: calc(var(--u) * 0.5) calc(var(--u) * 2.4);
+  background: rgba(46, 6, 34, 0.5);
+  font-weight: 600;
+  font-size: calc(var(--u) * 1.35);
+  letter-spacing: 0.2em;
+  color: var(--g-light);
+}
+
+[data-theme='glam'] .result-bank strong {
+  font-family: var(--g-font);
+  font-weight: 700;
+  font-size: calc(var(--u) * 3.2);
+  letter-spacing: 0.01em;
+  color: #ffd66e;
+  text-shadow: 0 calc(var(--u) * 0.2) 0 rgba(58, 12, 44, 0.8);
+}
+
+[data-theme='glam'] .result-bank em {
+  font-weight: 700;
+  font-size: calc(var(--u) * 1.7);
+  letter-spacing: 0.04em;
+}
+
+[data-theme='glam'] .result-next {
+  font-size: calc(var(--u) * 1.5);
+  letter-spacing: 0.22em;
+  color: var(--g-yellow);
+}
+
+/* ── Final total ───────────────────────────────────────────────────── */
+
+[data-theme='glam'] .total {
+  --accent: #ffd66e;
+  top: 60%;
+  width: calc(var(--u) * 64);
+}
+
+[data-theme='glam'] .total[data-bust='true'] {
+  --accent: var(--g-hot);
+}
+
+[data-theme='glam'] .total-amount {
+  --stroke: 0.15em;
+  font-family: var(--g-font);
+  font-weight: 700;
+  font-size: calc(var(--u) * 11);
+  line-height: 1.05;
+  background: none;
+  color: #fff;
+  filter: drop-shadow(0 0 calc(var(--u) * 1.8) rgba(255, 110, 190, 0.6));
+}
+
+/* White to gold fill over the sticker outline. */
+[data-theme='glam'] .total-amount::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #fff 0%, #fff6d6 40%, #ffd66e 75%, #f4b93c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+[data-theme='glam'] .total.is-visible .total-amount {
+  animation: none;
+}
+
+[data-theme='glam'] .total[data-bust='true'] .total-amount {
+  background: none;
+  color: var(--g-hot);
+}
+
+[data-theme='glam'] .total[data-bust='true'] .total-amount::after {
+  display: none;
+}
+
+[data-theme='glam'] .total-log li + li::before {
+  color: var(--g-light);
+}
+
+[data-theme='glam'] .total-log span {
+  padding: calc(var(--u) * 0.4) calc(var(--u) * 1.5);
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f585bf 0%, #e8559f 55%, #d63a8a 100%);
+  box-shadow:
+    inset 0 calc(var(--u) * 0.2) 0 rgba(255, 255, 255, 0.35),
+    0 calc(var(--u) * 0.3) calc(var(--u) * 0.6) rgba(40, 0, 28, 0.45);
+  font-family: var(--g-font);
+  font-weight: 700;
+  font-size: calc(var(--u) * 2);
+  color: #fff;
+  text-shadow: 0 calc(var(--u) * 0.14) 0 rgba(58, 12, 44, 0.6);
+}
+
+[data-theme='glam'] .total-log .is-bust span {
+  background: linear-gradient(180deg, #3d0c2f, #1c0516);
+  box-shadow: inset 0 0 0 1px rgba(232, 85, 159, 0.6);
+  color: var(--g-hot);
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+  }
+  45% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

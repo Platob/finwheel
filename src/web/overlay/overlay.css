@@ -11,8 +11,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ?preview adds a felt table so the overlay can be checked in a regular browser. */
-body.preview {
+/* ?preview (or ?backdrop in OBS) adds a felt table so the overlay can be checked in a regular browser. */
+body.preview,
+body.backdrop {
   background:
     radial-gradient(ellipse at 50% 40%, rgba(19, 114, 87, 0.55), transparent 65%),
     radial-gradient(ellipse at 50% 120%, #020c09, transparent 60%), #06291f;
