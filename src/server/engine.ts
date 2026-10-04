@@ -6,6 +6,8 @@ import {
   availablePrizes,
   formatMoney,
   isMoneyWheel,
+  logChip,
+  slotEffect,
   slotText,
   startTurn,
   type Turn,
@@ -322,16 +324,20 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
       subtitle: wheel.subtitle,
       sizing: wheel.sizing,
       money: isMoneyWheel(wheel),
-      segments: availablePrizes(wheel).map((p) => ({
-        id: p.id,
-        label: p.label,
-        description: p.description,
-        weight: p.weight,
-        tier: p.tier,
-        ...(p.color ? { color: p.color } : {}),
-        ...(p.bust ? { bust: true } : {}),
-        ...slotText(p, this.settings.currency),
-      })),
+      segments: availablePrizes(wheel).map((p) => {
+        const effect = slotEffect(p);
+        return {
+          id: p.id,
+          label: p.label,
+          description: p.description,
+          weight: p.weight,
+          tier: p.tier,
+          ...(p.color ? { color: p.color } : {}),
+          ...(p.bust ? { bust: true } : {}),
+          ...slotText(p, this.settings.currency),
+          ...(effect ? { effect } : {}),
+        };
+      }),
     };
   }
 
@@ -392,7 +398,7 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
       spinNumber: Math.max(1, current),
       spinsPlanned: Math.max(1, current) + turn.pending.length,
       money: turn.money,
-      nextMultiplier: 1, // TODO(next-multiplier): read the boost armed on the turn
+      nextMultiplier: turn.boost,
     };
   }
 
@@ -474,7 +480,7 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
         this.turn.log = [
           ...this.turn.log,
           {
-            chip: slotText(prize, this.settings.currency)?.amount ?? prize.label,
+            chip: logChip(prize, this.settings.currency, outcome.boost),
             wheelName: spin.wheel.name,
             before: outcome.before,
             after: outcome.after,
@@ -489,8 +495,8 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
             cash: prize.cash,
             multiplier: prize.multiplier,
             bust: prize.bust,
-            boost: 1, // TODO(next-multiplier): boost applied to this spin
-            nextMultiplier: 1, // TODO(next-multiplier): boost armed for the next spin
+            boost: outcome.boost,
+            nextMultiplier: this.turn.boost,
           };
           if (outcome.ended) payout = outcome.after;
         }

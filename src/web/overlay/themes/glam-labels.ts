@@ -9,7 +9,7 @@ export const GLAM_FACE = {
   /** Edge of the hub (the theme's layout.hub). */
   hub: 0.37,
   /** Lettering stays between these radii. */
-  textInner: 0.39,
+  textInner: 0.385,
   textOuter: 0.82,
   /** Highest point of a tangential amount: keeps it clear of the pointer tip. */
   amountTop: 0.8,
@@ -23,9 +23,9 @@ export type Measure = (text: string) => number;
 
 const MAX_HALF_ANGLE = Math.PI / 3;
 /** Clearance from the slice edges. */
-const PAD = 0.02;
+const PAD = 0.012;
 
-const AMOUNT_MAX = 0.19;
+const AMOUNT_MAX = 0.22;
 const AMOUNT_MIN = 0.08;
 /** Ink height of an amount, outline included, relative to its font size. */
 const AMOUNT_HEIGHT = 0.95;
@@ -42,7 +42,7 @@ const CAPTION_LINE = 1.02;
 
 const MARK_RATIO = 0.5;
 const MARK_MIN = 0.035;
-const MARK_GAP = 0.035;
+const MARK_GAP = 0.015;
 
 const LABEL_MAX = 0.12;
 /** Half the ink height of a one-line label (descenders and outline included). */

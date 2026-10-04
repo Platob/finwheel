@@ -124,11 +124,12 @@
         },
         {
           "id": "x2b",
-          "label": "×2 Total",
+          "label": "×2 Next",
           "weight": 1,
           "tier": "epic",
-          "multiplier": 2,
-          "description": "Your total is multiplied by 2"
+          "multiplier": 1,
+          "nextMultiplier": 2,
+          "description": "Your next spin pays double"
         },
         {
           "id": "c8",

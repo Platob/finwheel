@@ -37,16 +37,17 @@ function chat(text: string, patch: Partial<ChatMessage> = {}): ChatMessage {
   };
 }
 
-function setup(settings: Record<string, unknown> = {}) {
+function setup(
+  settings: Record<string, unknown> = {},
+  main: Record<string, unknown> = {
+    spinsPerTurn: 1,
+    prizes: [{ id: 'five', label: '$5', weight: 1, cash: 5 }],
+  },
+) {
   const config = ConfigSchema.parse({
     activeWheelId: 'main',
     wheels: [
-      {
-        id: 'main',
-        name: 'Main',
-        spinsPerTurn: 1,
-        prizes: [{ id: 'five', label: '$5', weight: 1, cash: 5 }],
-      },
+      { id: 'main', name: 'Main', ...main },
       { id: 'vip', name: 'VIP', prizes: [{ id: 'x', label: 'X', weight: 1 }] },
     ],
     settings: {
@@ -137,5 +138,27 @@ describe('TwitchBot', () => {
     engine.requestSpin({ player: 'Ana', source: 'manual' });
     vi.advanceTimersByTime(engine.snapshot().spin!.durationMs + SETTLE_MS);
     expect(connection.said.at(-1)).toBe('💰 @Ana walks away with $5!');
+  });
+
+  it('announces a boosted game once, with the boosted payout', () => {
+    const { engine, connection } = setup(
+      {},
+      {
+        spinsPerTurn: 2,
+        prizes: [
+          // random() = 0.5 lands on "×2 Next" while it is in stock, then on "$5".
+          { id: 'next', label: '×2 Next', weight: 1, nextMultiplier: 2, stock: 1 },
+          { id: 'five', label: '$5', weight: 0.0001, cash: 5 },
+        ],
+      },
+    );
+    const said = connection.said.length;
+    engine.requestSpin({ player: 'Ana', source: 'manual' });
+    vi.advanceTimersByTime(engine.snapshot().spin!.durationMs + SETTLE_MS);
+    expect(engine.snapshot().result).toMatchObject({ label: '×2 Next', payout: null });
+    vi.advanceTimersByTime(engine.settings.spin.followUpHoldMs);
+    vi.advanceTimersByTime(engine.snapshot().spin!.durationMs + SETTLE_MS);
+    expect(engine.snapshot().result).toMatchObject({ label: '$5', payout: 10 });
+    expect(connection.said.slice(said)).toEqual(['💰 @Ana walks away with $10!']);
   });
 });

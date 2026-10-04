@@ -24,7 +24,9 @@ describe('glamSliceStyle', () => {
   it('keeps cycle neighbours apart around effect slices', () => {
     const effects: (Segment['effect'] | undefined)[] = ['cash', 'total', 'cash', 'next', 'cash', 'cash'];
     for (let count = 2; count <= 40; count++) {
-      const segments = Array.from({ length: count }, (_, i) => segment({ effect: effects[i % effects.length] }));
+      const segments = Array.from({ length: count }, (_, i) =>
+        segment({ effect: effects[i % effects.length] }),
+      );
       const bases = segments.map((s, i) => glamSliceStyle(s, i, count).base);
       for (let i = 0; i < count; i++) {
         const next = (i + 1) % count;

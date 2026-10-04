@@ -4,9 +4,10 @@
  * A *turn* is everything one player gets from a single request: `spinsPerTurn` spins of the
  * starting wheel, plus any extra spins and chained wheels won along the way. Cash and
  * multipliers accumulate into the turn's running total; bankrupt wipes it and ends the turn.
+ * A "×N next" slice arms a boost that multiplies the cash of the player's next spin.
  */
 import type { Config, Prize, Settings, Wheel } from './schema.js';
-import type { TurnLogEntry } from './types.js';
+import type { SlotEffect, TurnLogEntry } from './types.js';
 
 export interface Turn {
   player: string;
@@ -17,6 +18,8 @@ export interface Turn {
   pending: string[];
   /** Whether any wheel in this turn has money mechanics (shows the bank on the overlay). */
   money: boolean;
+  /** Multiplier armed for the cash of the next spin by "×N next" slices (1 = none). */
+  boost: number;
   /** Every spin played so far, for the final total screen. */
   log: TurnLogEntry[];
 }
@@ -25,14 +28,18 @@ export interface PrizeOutcome {
   turn: Turn;
   before: number;
   after: number;
+  /** Boost used up by this spin, multiplying its cash if it had any (1 = none). */
+  boost: number;
   /** True when the turn has no spins left (or hit bankrupt / the safety cap). */
   ended: boolean;
 }
 
-type Effects = Pick<Prize, 'cash' | 'multiplier' | 'extraSpins' | 'bust' | 'chainWheelId'>;
+type Effects = Pick<Prize, 'cash' | 'multiplier' | 'nextMultiplier' | 'extraSpins' | 'bust' | 'chainWheelId'>;
 
-export function hasMoneyEffect(prize: Pick<Prize, 'cash' | 'multiplier' | 'bust'>): boolean {
-  return prize.cash > 0 || prize.multiplier !== 1 || prize.bust;
+export function hasMoneyEffect(
+  prize: Pick<Prize, 'cash' | 'multiplier' | 'nextMultiplier' | 'bust'>,
+): boolean {
+  return prize.cash > 0 || prize.multiplier !== 1 || prize.nextMultiplier !== 1 || prize.bust;
 }
 
 export function isMoneyWheel(wheel: Wheel): boolean {
@@ -40,6 +47,9 @@ export function isMoneyWheel(wheel: Wheel): boolean {
 }
 
 export const roundMoney = (value: number): number => Math.round(value * 100) / 100;
+
+/** Keeps stacked boosts readable ("×2.25", not "×2.2500000000000004"). */
+const roundBoost = (value: number): number => Math.round(value * 1e4) / 1e4;
 
 /** Starts a game of `spins` spins (the wheel's default when omitted). */
 export function startTurn(wheel: Wheel, player: string, spins = wheel.spinsPerTurn): Turn {
@@ -49,6 +59,7 @@ export function startTurn(wheel: Wheel, player: string, spins = wheel.spinsPerTu
     spins: 0,
     pending: Array.from({ length: Math.max(1, spins) - 1 }, () => wheel.id),
     money: isMoneyWheel(wheel),
+    boost: 1,
     log: [],
   };
 }
@@ -56,6 +67,11 @@ export function startTurn(wheel: Wheel, player: string, spins = wheel.spinsPerTu
 /**
  * Applies a won prize to the turn. A chained wheel plays its full `spinsPerTurn` first, then the
  * extra spins of the current wheel, then whatever was already pending.
+ *
+ * The total becomes `(before + cash × boost) × multiplier`. A "×N next" slice multiplies the armed
+ * boost by N and keeps it for the next spin (its own cash is paid as printed); any other result
+ * uses the boost up, even without cash. Bankrupt clears the total and the boost, and a boost still
+ * armed when the turn ends is lost.
  */
 export function applyPrize(
   turn: Turn,
@@ -68,12 +84,16 @@ export function applyPrize(
   const spins = turn.spins + 1;
   let after: number;
   let pending: string[];
+  let boost = 1;
+  let armed = 1;
 
   if (prize.bust) {
     after = 0;
     pending = [];
   } else {
-    after = roundMoney((before + prize.cash) * prize.multiplier);
+    if (prize.nextMultiplier > 1) armed = roundBoost(turn.boost * prize.nextMultiplier);
+    else boost = turn.boost;
+    after = roundMoney((before + prize.cash * boost) * prize.multiplier);
     pending = [
       ...(prize.chainWheelId
         ? Array.from({ length: spinsPerTurn(prize.chainWheelId) }, () => prize.chainWheelId!)
@@ -83,9 +103,10 @@ export function applyPrize(
     ];
   }
   if (spins >= maxSpins) pending = [];
+  const ended = pending.length === 0;
 
-  const next: Turn = { ...turn, total: after, spins, pending, log: turn.log };
-  return { turn: next, before, after, ended: pending.length === 0 };
+  const next: Turn = { ...turn, total: after, spins, pending, boost: ended ? 1 : armed, log: turn.log };
+  return { turn: next, before, after, boost, ended };
 }
 
 export function formatMoney(value: number, currency: Settings['currency']): string {
@@ -98,21 +119,25 @@ export function formatMoney(value: number, currency: Settings['currency']): stri
 export interface SlotText {
   /** Large value printed on the slice: "$10", "×2", "+1". */
   amount: string;
-  /** Small caption next to it: "bonus spin", "total", "jackpot". */
+  /** Small caption next to it: "bonus spin", "total", "next", "jackpot". */
   caption: string;
 }
 
 /** What a money slice shows on the wheel, derived from its effects so it always matches the payout. */
 export function slotText(
-  prize: Pick<Prize, 'label' | 'cash' | 'multiplier' | 'extraSpins' | 'bust'>,
+  prize: Pick<Prize, 'label' | 'cash' | 'multiplier' | 'nextMultiplier' | 'extraSpins' | 'bust'>,
   currency: Settings['currency'],
 ): SlotText | null {
   if (prize.bust) return null;
   const spins = prize.extraSpins;
   const spinCaption = spins > 0 ? (spins > 1 ? `${spins} bonus spins` : 'bonus spin') : '';
+  const next = prize.nextMultiplier > 1 ? `×${prize.nextMultiplier}` : '';
   if (prize.cash > 0) {
     const amount = formatMoney(prize.cash, currency);
-    let caption = spinCaption || (prize.multiplier > 1 ? `×${prize.multiplier} total` : '');
+    let caption =
+      spinCaption ||
+      (prize.multiplier > 1 ? `×${prize.multiplier} total` : '') ||
+      (next ? `${next} next` : '');
     if (!caption) {
       // Keep any extra words of the label ("$500 Jackpot" → "Jackpot").
       const rest = prize.label.replace(amount, '').replace(/^[\s+·:-]+|[\s+·:-]+$/g, '');
@@ -121,8 +146,37 @@ export function slotText(
     return { amount, caption };
   }
   if (prize.multiplier > 1) return { amount: `×${prize.multiplier}`, caption: spinCaption || 'total' };
+  if (next) return { amount: next, caption: 'next' };
   if (spins > 0) return { amount: `+${spins}`, caption: spins > 1 ? 'free spins' : 'free spin' };
   return null;
+}
+
+/** Main effect of a slice, used to style it; none for bankrupt and plain prize slices. */
+export function slotEffect(
+  prize: Pick<Prize, 'cash' | 'multiplier' | 'nextMultiplier' | 'extraSpins' | 'bust'>,
+): SlotEffect | undefined {
+  if (prize.bust) return undefined;
+  if (prize.cash > 0) return 'cash';
+  if (prize.multiplier !== 1) return 'total';
+  if (prize.nextMultiplier > 1) return 'next';
+  if (prize.extraSpins > 0) return 'spins';
+  return undefined;
+}
+
+/**
+ * Short text for one spin on the total screen: the slice amount ("$5", "×2", "×2 next") or its
+ * label. Boosted cash shows what it paid ("$14" for a $7 slice at ×2).
+ */
+export function logChip(
+  prize: Pick<Prize, 'label' | 'cash' | 'multiplier' | 'nextMultiplier' | 'extraSpins' | 'bust'>,
+  currency: Settings['currency'],
+  boost = 1,
+): string {
+  if (prize.bust) return prize.label;
+  if (prize.cash > 0 && boost !== 1) return formatMoney(roundMoney(prize.cash * boost), currency);
+  const text = slotText(prize, currency);
+  if (!text) return prize.label;
+  return text.caption === 'next' ? `${text.amount} next` : text.amount;
 }
 
 // ── Simulation ─────────────────────────────────────────────────────────────

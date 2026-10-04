@@ -22,9 +22,10 @@ function insideSlice(slices: number, radius: number, width: number, height: numb
 
 describe('tangentialAmount', () => {
   it('prints short amounts large, where the reference does, on a 11-slice wheel', () => {
-    const layout = tangentialAmount({ span: span(11), amount: measure('$7'), captions: [], mark: measure('$') });
+    // "$7" and "$" in Fredoka 700 measure 0.96 and 0.44 em.
+    const layout = tangentialAmount({ span: span(11), amount: 0.96, captions: [], mark: 0.44 });
     expect(layout).not.toBeNull();
-    expect(layout!.size).toBeCloseTo(0.19);
+    expect(layout!.size).toBeCloseTo(0.22);
     expect(layout!.radius).toBeLessThan(0.66);
     expect(layout!.mark).not.toBeNull();
     expect(layout!.mark!.radius).toBeLessThan(layout!.radius);
@@ -38,7 +39,9 @@ describe('tangentialAmount', () => {
         const layout = tangentialAmount({ span: span(slices), amount: width, captions: [], mark: null });
         if (!layout) continue;
         const box = (width + STICKER_STROKE) * layout.size;
-        expect(insideSlice(slices, layout.radius, box, layout.size * 0.95), `${amount} / ${slices}`).toBe(true);
+        expect(insideSlice(slices, layout.radius, box, layout.size * 0.95), `${amount} / ${slices}`).toBe(
+          true,
+        );
         expect(layout.radius + layout.size * 0.475).toBeLessThanOrEqual(GLAM_FACE.amountTop + 1e-9);
       }
     }
@@ -65,10 +68,14 @@ describe('tangentialAmount', () => {
 
   it('falls back (null) when the slice is too thin to print the amount across', () => {
     expect(tangentialAmount({ span: span(40), amount: measure('$10'), captions: [], mark: null })).toBeNull();
-    expect(tangentialAmount({ span: span(30), amount: measure('$100'), captions: [], mark: null })).toBeNull();
+    expect(
+      tangentialAmount({ span: span(30), amount: measure('$100'), captions: [], mark: null }),
+    ).toBeNull();
     // A caption that cannot fit forces the fallback too.
     const long = [[measure('A VERY LONG CAPTION INDEED')]];
-    expect(tangentialAmount({ span: span(16), amount: measure('$5'), captions: long, mark: null })).toBeNull();
+    expect(
+      tangentialAmount({ span: span(16), amount: measure('$5'), captions: long, mark: null }),
+    ).toBeNull();
   });
 
   it('honours a common cap', () => {
@@ -83,7 +90,7 @@ describe('amountCap', () => {
     expect(amountCap([0.17, 0.15, 0.17, 0.17])).toBeCloseTo(0.15);
     expect(amountCap([0.17, 0.1, 0.17, 0.17])).toBeCloseTo(0.1445);
     expect(amountCap([0.17, 0.17])).toBe(0.17);
-    expect(amountCap([])).toBe(0.19);
+    expect(amountCap([])).toBe(0.22);
   });
 });
 

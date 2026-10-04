@@ -108,9 +108,9 @@ function caption(
 
 function goldFill(ctx: CanvasRenderingContext2D, top: number, bottom: number) {
   const g = ctx.createLinearGradient(0, top, 0, bottom);
-  g.addColorStop(0, '#fbdd80');
+  g.addColorStop(0, '#fde38c');
   g.addColorStop(0.45, GLAM.rimGold);
-  g.addColorStop(1, '#e0a537');
+  g.addColorStop(1, '#e6ae3f');
   return g;
 }
 
@@ -242,10 +242,7 @@ function drawTangential(
       caption(ctx, line, 0, -layout.caption!.radii[i]! * r, layout.caption!.size * r, style.caption);
     });
   } else if (layout.mark && plan.mark) {
-    sticker(ctx, plan.mark, 0, -layout.mark.radius * r, layout.mark.size * r, {
-      fill: style.text === '#ffffff' ? '#ffe9f4' : style.text,
-      stroke: style.stroke,
-    });
+    sticker(ctx, plan.mark, 0, -layout.mark.radius * r, layout.mark.size * r, colors);
   }
 }
 
@@ -292,7 +289,8 @@ function paintLabels(
   segments.forEach((segment, index) => {
     if (!segment.amount) return;
     const text = segment.caption?.toUpperCase().trim();
-    const captionOptions = text ? [[text], ...[twoLines(text, measures.serif)].filter((l) => l !== null)] : [];
+    const split = text ? twoLines(text, measures.serif) : null;
+    const captionOptions = text ? [[text], ...(split ? [split] : [])] : [];
     const mark = text ? null : currencyMark(segment.amount);
     const measure: AmountMeasure = {
       span: span(arcs[index]!),
