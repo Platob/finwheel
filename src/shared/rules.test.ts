@@ -319,26 +319,114 @@ describe('default config', () => {
   let seed = 42;
   const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
 
-  it('ships a risk ladder: higher stakes pay more on average but bust more often', () => {
-    const lucky = simulateTurns(config, 'broke-boi', 20000, random)!;
-    const high = simulateTurns(config, 'simp', 20000, random)!;
-    const diamond = simulateTurns(config, 'whale', 20000, random)!;
-    expect(lucky.bustRate).toBe(0);
-    expect(lucky.averagePayout).toBeGreaterThan(10);
-    expect(high.averagePayout).toBeGreaterThan(lucky.averagePayout);
-    expect(diamond.averagePayout).toBeGreaterThan(high.averagePayout);
-    expect(high.bustRate).toBeGreaterThan(0.2);
-    expect(diamond.bustRate).toBeGreaterThan(high.bustRate);
+  /** What each slice of a default wheel shows, in order, as the wheel and the result card print it. */
+  const faces = (id: string) =>
+    config.wheels
+      .find((w) => w.id === id)!
+      .prizes.map((p) => {
+        const text = slotText(p, config.settings.currency);
+        return text ? `${text.amount}${text.caption ? ` ${text.caption}` : ''}` : p.label;
+      });
+
+  it('ships the streamer’s wheels with their exact slices', () => {
+    expect(faces('broke-boi')).toEqual([
+      '$2',
+      '$10',
+      '$4',
+      '×2 total',
+      '$6',
+      '$3',
+      '$8',
+      '$5',
+      '×2 next',
+      '$9',
+      '$7',
+    ]);
+    expect(faces('pathetic')).toEqual([
+      '$10',
+      '$1 bonus spin',
+      '×2 total',
+      '$4',
+      '$6',
+      '$10',
+      '$1 bonus spin',
+      '×2 total',
+      '$4',
+      '$6',
+    ]);
+    expect(faces('loser')).toEqual([
+      '$100 10000 bits',
+      '$10 1000 bits',
+      '×2 total',
+      '$50 5000 bits',
+      '$44 4400 bits',
+      '$25 2500 bits',
+      '$75 7500 bits',
+      '$25 2500 bits',
+    ]);
+    expect(faces('roulette')).toEqual(['$15', '$20', '$10', '$15', '$44', '$20', '$10', '$25']);
+    expect(faces('angel')).toEqual(['$11', '$111', '$99', '$88', '$77', '$66', '$55', '$44', '$33', '$22']);
+    expect(faces('all-or-nothing')).toEqual([
+      '$10',
+      '$10',
+      '$10',
+      '$100',
+      '$10',
+      '$10',
+      '$100',
+      '$10',
+      '$10',
+      '$100',
+      '$10',
+      '$10',
+    ]);
+    expect(faces('infinity')).toEqual([
+      '$4 bonus spin',
+      '$10',
+      '$2 bonus spin',
+      '$10 bonus spin',
+      '$3 bonus spin',
+      '$4 bonus spin',
+      '$8 bonus spin',
+      '$15',
+      '$6 bonus spin',
+      '$3 bonus spin',
+      '$10 bonus spin',
+      '$2 bonus spin',
+    ]);
+    expect(faces('whale')).toEqual([
+      '$100',
+      '$140',
+      '$125',
+      '$125',
+      '$100 bonus spin',
+      '$300',
+      '$169',
+      '$250',
+      '$200',
+      '$69',
+      '×2 total',
+      '$150',
+    ]);
   });
 
-  it('ships a ×2 Next slice on Broke Boi Wheel', () => {
-    const lucky = config.wheels.find((w) => w.id === 'broke-boi')!;
-    expect(lucky.prizes.find((p) => p.id === 'x2b')).toMatchObject({
-      label: '×2 Next',
-      multiplier: 1,
-      nextMultiplier: 2,
-      tier: 'epic',
-    });
+  it('gives every money wheel its own chat command and sane payouts', () => {
+    const commands = new Set<string>();
+    for (const wheel of config.wheels) {
+      const stats = simulateTurns(config, wheel.id, 4000, random)!;
+      if (!stats || stats.averagePayout === 0) continue;
+      expect(wheel.command, wheel.id).toBeDefined();
+      expect(commands.has(wheel.command!), wheel.command).toBe(false);
+      commands.add(wheel.command!);
+      expect(stats.averagePayout, wheel.id).toBeGreaterThan(5);
+    }
+    // Simp keeps the bankrupt risk; Broke Boi never busts; whales pay the most.
+    const broke = simulateTurns(config, 'broke-boi', 20000, random)!;
+    const simp = simulateTurns(config, 'simp', 20000, random)!;
+    const whale = simulateTurns(config, 'whale', 20000, random)!;
+    expect(broke.bustRate).toBe(0);
+    expect(simp.bustRate).toBeGreaterThan(0.2);
+    expect(whale.averagePayout).toBeGreaterThan(simp.averagePayout);
   });
 
   it('simulates ×N next boosts', () => {

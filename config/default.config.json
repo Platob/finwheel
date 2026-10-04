@@ -5,106 +5,17 @@
     {
       "id": "broke-boi",
       "name": "Broke Boi Wheel",
-      "subtitle": "$2 – $10 · no risk",
+      "subtitle": "$2 – $10 · ×2 total · ×2 next",
       "sizing": "weight",
       "spinsPerTurn": 3,
       "prizes": [
         {
-          "id": "c2a",
+          "id": "c2",
           "label": "$2",
           "weight": 1,
           "tier": "common",
           "cash": 2,
           "description": "$2 added to your total"
-        },
-        {
-          "id": "c7",
-          "label": "$7",
-          "weight": 1,
-          "tier": "common",
-          "cash": 7,
-          "description": "$7 added to your total"
-        },
-        {
-          "id": "c3a",
-          "label": "$3",
-          "weight": 1,
-          "tier": "common",
-          "cash": 3,
-          "description": "$3 added to your total"
-        },
-        {
-          "id": "x2a",
-          "label": "×2 Total",
-          "weight": 1,
-          "tier": "epic",
-          "multiplier": 2,
-          "description": "Your total is multiplied by 2"
-        },
-        {
-          "id": "c5a",
-          "label": "$5",
-          "weight": 1,
-          "tier": "common",
-          "cash": 5,
-          "description": "$5 added to your total"
-        },
-        {
-          "id": "c2-spin",
-          "label": "$2 + Spin",
-          "weight": 1,
-          "tier": "rare",
-          "cash": 2,
-          "extraSpins": 1,
-          "description": "$2 added to your total and a free spin"
-        },
-        {
-          "id": "c9",
-          "label": "$9",
-          "weight": 1,
-          "tier": "common",
-          "cash": 9,
-          "description": "$9 added to your total"
-        },
-        {
-          "id": "c4",
-          "label": "$4",
-          "weight": 1,
-          "tier": "common",
-          "cash": 4,
-          "description": "$4 added to your total"
-        },
-        {
-          "id": "c2b",
-          "label": "$2",
-          "weight": 1,
-          "tier": "common",
-          "cash": 2,
-          "description": "$2 added to your total"
-        },
-        {
-          "id": "c6",
-          "label": "$6",
-          "weight": 1,
-          "tier": "common",
-          "cash": 6,
-          "description": "$6 added to your total"
-        },
-        {
-          "id": "free",
-          "label": "Free Spin",
-          "weight": 1,
-          "tier": "rare",
-          "extraSpins": 1,
-          "description": "One more spin on the house"
-        },
-        {
-          "id": "c3b",
-          "label": "$3",
-          "weight": 1,
-          "tier": "common",
-          "cash": 3,
-          "description": "$3 added to your total"
         },
         {
           "id": "c10",
@@ -115,21 +26,36 @@
           "description": "$10 added to your total"
         },
         {
-          "id": "c5b",
-          "label": "$5",
+          "id": "c4",
+          "label": "$4",
           "weight": 1,
           "tier": "common",
-          "cash": 5,
-          "description": "$5 added to your total"
+          "cash": 4,
+          "description": "$4 added to your total"
         },
         {
-          "id": "x2b",
-          "label": "×2 Next",
+          "id": "x2-total",
+          "label": "×2 Total",
           "weight": 1,
           "tier": "epic",
-          "multiplier": 1,
-          "nextMultiplier": 2,
-          "description": "Your next spin pays double"
+          "multiplier": 2,
+          "description": "Your total is multiplied by 2"
+        },
+        {
+          "id": "c6",
+          "label": "$6",
+          "weight": 1,
+          "tier": "common",
+          "cash": 6,
+          "description": "$6 added to your total"
+        },
+        {
+          "id": "c3",
+          "label": "$3",
+          "weight": 1,
+          "tier": "common",
+          "cash": 3,
+          "description": "$3 added to your total"
         },
         {
           "id": "c8",
@@ -138,6 +64,139 @@
           "tier": "common",
           "cash": 8,
           "description": "$8 added to your total"
+        },
+        {
+          "id": "c5",
+          "label": "$5",
+          "weight": 1,
+          "tier": "common",
+          "cash": 5,
+          "description": "$5 added to your total"
+        },
+        {
+          "id": "x2-next",
+          "label": "×2 Next",
+          "weight": 1,
+          "tier": "epic",
+          "nextMultiplier": 2,
+          "description": "Your next spin pays double"
+        },
+        {
+          "id": "c9",
+          "label": "$9",
+          "weight": 1,
+          "tier": "common",
+          "cash": 9,
+          "description": "$9 added to your total"
+        },
+        {
+          "id": "c7",
+          "label": "$7",
+          "weight": 1,
+          "tier": "common",
+          "cash": 7,
+          "description": "$7 added to your total"
+        }
+      ],
+      "command": "!brokeboi"
+    },
+    {
+      "id": "pathetic",
+      "name": "Pathetic Wheel",
+      "subtitle": "$1 – $10 · ×2 total",
+      "sizing": "weight",
+      "spinsPerTurn": 3,
+      "command": "!pathetic",
+      "prizes": [
+        {
+          "id": "c10a",
+          "label": "$10",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#ee6aa5"
+        },
+        {
+          "id": "c1a",
+          "label": "$1 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 1,
+          "description": "$1 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#fafafa"
+        },
+        {
+          "id": "x2a",
+          "label": "×2 Total",
+          "weight": 1,
+          "tier": "epic",
+          "multiplier": 2,
+          "description": "Your total is multiplied by 2"
+        },
+        {
+          "id": "c4a",
+          "label": "$4",
+          "weight": 1,
+          "tier": "common",
+          "cash": 4,
+          "description": "$4 added to your total",
+          "color": "#f9b8d5"
+        },
+        {
+          "id": "c6a",
+          "label": "$6",
+          "weight": 1,
+          "tier": "common",
+          "cash": 6,
+          "description": "$6 added to your total",
+          "color": "#ee6aa5"
+        },
+        {
+          "id": "c10b",
+          "label": "$10",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#fafafa"
+        },
+        {
+          "id": "c1b",
+          "label": "$1 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 1,
+          "description": "$1 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#e53d89"
+        },
+        {
+          "id": "x2b",
+          "label": "×2 Total",
+          "weight": 1,
+          "tier": "epic",
+          "multiplier": 2,
+          "description": "Your total is multiplied by 2"
+        },
+        {
+          "id": "c4b",
+          "label": "$4",
+          "weight": 1,
+          "tier": "common",
+          "cash": 4,
+          "description": "$4 added to your total",
+          "color": "#ee6aa5"
+        },
+        {
+          "id": "c6b",
+          "label": "$6",
+          "weight": 1,
+          "tier": "common",
+          "cash": 6,
+          "description": "$6 added to your total",
+          "color": "#fafafa"
         }
       ]
     },
@@ -277,38 +336,34 @@
           "cash": 20,
           "description": "$20 added to your total"
         }
-      ]
+      ],
+      "command": "!simp"
     },
     {
-      "id": "whale",
-      "name": "Whale Wheel",
-      "subtitle": "$50 – $500 · high risk",
+      "id": "loser",
+      "name": "Loser Wheel",
+      "subtitle": "$10 – $100 · ×2 total · or pay in bits",
       "sizing": "weight",
-      "spinsPerTurn": 2,
+      "spinsPerTurn": 3,
+      "command": "!loser",
       "prizes": [
         {
-          "id": "c50a",
-          "label": "$50",
+          "id": "c100",
+          "label": "$100/10000 bits",
           "weight": 1,
-          "tier": "common",
-          "cash": 50,
-          "description": "$50 added to your total"
-        },
-        {
-          "id": "bust-a",
-          "label": "Bankrupt",
-          "weight": 1,
-          "tier": "common",
-          "bust": true,
-          "description": "Lose everything, turn over"
-        },
-        {
-          "id": "c100a",
-          "label": "$100",
-          "weight": 1,
-          "tier": "common",
+          "tier": "legendary",
           "cash": 100,
-          "description": "$100 added to your total"
+          "description": "$100 (or 10000 bits) added to your total",
+          "color": "#e8504e"
+        },
+        {
+          "id": "c10",
+          "label": "$10/1000 bits",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 (or 1000 bits) added to your total",
+          "color": "#fbf3f1"
         },
         {
           "id": "x2",
@@ -316,23 +371,554 @@
           "weight": 1,
           "tier": "epic",
           "multiplier": 2,
-          "description": "Your total is multiplied by 2"
+          "description": "Your total is multiplied by 2",
+          "color": "#e8504e"
         },
         {
-          "id": "bust-b",
-          "label": "Bankrupt",
+          "id": "c50",
+          "label": "$50/5000 bits",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 50,
+          "description": "$50 (or 5000 bits) added to your total",
+          "color": "#fbf3f1"
+        },
+        {
+          "id": "c44",
+          "label": "$44/4400 bits",
           "weight": 1,
           "tier": "common",
-          "bust": true,
-          "description": "Lose everything, turn over"
+          "cash": 44,
+          "description": "$44 (or 4400 bits) added to your total",
+          "color": "#e8504e"
+        },
+        {
+          "id": "c25a",
+          "label": "$25/2500 bits",
+          "weight": 1,
+          "tier": "common",
+          "cash": 25,
+          "description": "$25 (or 2500 bits) added to your total",
+          "color": "#fbf3f1"
         },
         {
           "id": "c75",
-          "label": "$75",
+          "label": "$75/7500 bits",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 75,
+          "description": "$75 (or 7500 bits) added to your total",
+          "color": "#e8504e"
+        },
+        {
+          "id": "c25b",
+          "label": "$25/2500 bits",
           "weight": 1,
           "tier": "common",
-          "cash": 75,
-          "description": "$75 added to your total"
+          "cash": 25,
+          "description": "$25 (or 2500 bits) added to your total",
+          "color": "#fbf3f1"
+        }
+      ]
+    },
+    {
+      "id": "roulette",
+      "name": "Roulette Wheel",
+      "subtitle": "$10 – $44 · red or black",
+      "sizing": "weight",
+      "spinsPerTurn": 1,
+      "command": "!roulette",
+      "prizes": [
+        {
+          "id": "c15a",
+          "label": "$15",
+          "weight": 1,
+          "tier": "common",
+          "cash": 15,
+          "description": "$15 added to your total",
+          "color": "#e0302a"
+        },
+        {
+          "id": "c20a",
+          "label": "$20",
+          "weight": 1,
+          "tier": "common",
+          "cash": 20,
+          "description": "$20 added to your total",
+          "color": "#1c1416"
+        },
+        {
+          "id": "c10a",
+          "label": "$10",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#e0302a"
+        },
+        {
+          "id": "c15b",
+          "label": "$15",
+          "weight": 1,
+          "tier": "common",
+          "cash": 15,
+          "description": "$15 added to your total",
+          "color": "#1c1416"
+        },
+        {
+          "id": "c44",
+          "label": "$44",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 44,
+          "description": "$44 added to your total",
+          "color": "#e0302a"
+        },
+        {
+          "id": "c20b",
+          "label": "$20",
+          "weight": 1,
+          "tier": "common",
+          "cash": 20,
+          "description": "$20 added to your total",
+          "color": "#1c1416"
+        },
+        {
+          "id": "c10b",
+          "label": "$10",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#e0302a"
+        },
+        {
+          "id": "c25",
+          "label": "$25",
+          "weight": 1,
+          "tier": "common",
+          "cash": 25,
+          "description": "$25 added to your total",
+          "color": "#1c1416"
+        }
+      ]
+    },
+    {
+      "id": "angel",
+      "name": "Angel Wheel",
+      "subtitle": "$11 – $111 · angel numbers",
+      "sizing": "weight",
+      "spinsPerTurn": 1,
+      "command": "!angel",
+      "prizes": [
+        {
+          "id": "c11",
+          "label": "$11",
+          "weight": 1,
+          "tier": "common",
+          "cash": 11,
+          "description": "$11 added to your total",
+          "color": "#e7a6ef"
+        },
+        {
+          "id": "c111",
+          "label": "$111",
+          "weight": 1,
+          "tier": "legendary",
+          "cash": 111,
+          "description": "$111 added to your total",
+          "color": "#fbf6fb"
+        },
+        {
+          "id": "c99",
+          "label": "$99",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 99,
+          "description": "$99 added to your total",
+          "color": "#e7a6ef"
+        },
+        {
+          "id": "c88",
+          "label": "$88",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 88,
+          "description": "$88 added to your total",
+          "color": "#fbf6fb"
+        },
+        {
+          "id": "c77",
+          "label": "$77",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 77,
+          "description": "$77 added to your total",
+          "color": "#e7a6ef"
+        },
+        {
+          "id": "c66",
+          "label": "$66",
+          "weight": 1,
+          "tier": "common",
+          "cash": 66,
+          "description": "$66 added to your total",
+          "color": "#fbf6fb"
+        },
+        {
+          "id": "c55",
+          "label": "$55",
+          "weight": 1,
+          "tier": "common",
+          "cash": 55,
+          "description": "$55 added to your total",
+          "color": "#e7a6ef"
+        },
+        {
+          "id": "c44",
+          "label": "$44",
+          "weight": 1,
+          "tier": "common",
+          "cash": 44,
+          "description": "$44 added to your total",
+          "color": "#fbf6fb"
+        },
+        {
+          "id": "c33",
+          "label": "$33",
+          "weight": 1,
+          "tier": "common",
+          "cash": 33,
+          "description": "$33 added to your total",
+          "color": "#e7a6ef"
+        },
+        {
+          "id": "c22",
+          "label": "$22",
+          "weight": 1,
+          "tier": "common",
+          "cash": 22,
+          "description": "$22 added to your total",
+          "color": "#fbf6fb"
+        }
+      ]
+    },
+    {
+      "id": "all-or-nothing",
+      "name": "All or Nothing",
+      "subtitle": "$10 or $100 · one spin",
+      "sizing": "weight",
+      "spinsPerTurn": 1,
+      "command": "!allornothing",
+      "prizes": [
+        {
+          "id": "c10a",
+          "label": "$10",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#5aa0e8"
+        },
+        {
+          "id": "c10b",
+          "label": "$10",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#f5f8fc"
+        },
+        {
+          "id": "c10c",
+          "label": "$10",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#5aa0e8"
+        },
+        {
+          "id": "c100a",
+          "label": "$100",
+          "weight": 1,
+          "tier": "legendary",
+          "cash": 100,
+          "description": "$100 added to your total",
+          "color": "#f5f8fc"
+        },
+        {
+          "id": "c10d",
+          "label": "$10",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#5aa0e8"
+        },
+        {
+          "id": "c10e",
+          "label": "$10",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#f5f8fc"
+        },
+        {
+          "id": "c100b",
+          "label": "$100",
+          "weight": 1,
+          "tier": "legendary",
+          "cash": 100,
+          "description": "$100 added to your total",
+          "color": "#5aa0e8"
+        },
+        {
+          "id": "c10f",
+          "label": "$10",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#f5f8fc"
+        },
+        {
+          "id": "c10g",
+          "label": "$10",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#5aa0e8"
+        },
+        {
+          "id": "c100c",
+          "label": "$100",
+          "weight": 1,
+          "tier": "legendary",
+          "cash": 100,
+          "description": "$100 added to your total",
+          "color": "#f5f8fc"
+        },
+        {
+          "id": "c10h",
+          "label": "$10",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#5aa0e8"
+        },
+        {
+          "id": "c10i",
+          "label": "$10",
+          "weight": 1,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#f5f8fc"
+        }
+      ]
+    },
+    {
+      "id": "infinity",
+      "name": "Infinity Wheel",
+      "subtitle": "$2 – $15 · almost every slice spins again",
+      "sizing": "weight",
+      "spinsPerTurn": 1,
+      "command": "!infinity",
+      "prizes": [
+        {
+          "id": "c4s",
+          "label": "$4 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 4,
+          "description": "$4 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#bcd9ef"
+        },
+        {
+          "id": "c10",
+          "label": "$10",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 10,
+          "description": "$10 added to your total",
+          "color": "#f3c4d8"
+        },
+        {
+          "id": "c2s",
+          "label": "$2 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 2,
+          "description": "$2 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#c9e8cb"
+        },
+        {
+          "id": "c10s",
+          "label": "$10 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 10,
+          "description": "$10 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#f6eaa6"
+        },
+        {
+          "id": "c3s",
+          "label": "$3 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 3,
+          "description": "$3 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#bcd9ef"
+        },
+        {
+          "id": "c4sb",
+          "label": "$4 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 4,
+          "description": "$4 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#f3c4d8"
+        },
+        {
+          "id": "c8s",
+          "label": "$8 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 8,
+          "description": "$8 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#c9e8cb"
+        },
+        {
+          "id": "c15",
+          "label": "$15",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 15,
+          "description": "$15 added to your total",
+          "color": "#f6eaa6"
+        },
+        {
+          "id": "c6s",
+          "label": "$6 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 6,
+          "description": "$6 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#bcd9ef"
+        },
+        {
+          "id": "c3sb",
+          "label": "$3 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 3,
+          "description": "$3 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#f3c4d8"
+        },
+        {
+          "id": "c10sb",
+          "label": "$10 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 10,
+          "description": "$10 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#c9e8cb"
+        },
+        {
+          "id": "c2sb",
+          "label": "$2 + spin",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 2,
+          "description": "$2 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#f6eaa6"
+        }
+      ]
+    },
+    {
+      "id": "whale",
+      "name": "Whale Wheel",
+      "subtitle": "$69 – $300 · ×2 total",
+      "sizing": "weight",
+      "spinsPerTurn": 2,
+      "prizes": [
+        {
+          "id": "c100",
+          "label": "$100",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 100,
+          "description": "$100 added to your total",
+          "color": "#5aa9e6"
+        },
+        {
+          "id": "c140",
+          "label": "$140",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 140,
+          "description": "$140 added to your total",
+          "color": "#8b6fd0"
+        },
+        {
+          "id": "c125a",
+          "label": "$125",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 125,
+          "description": "$125 added to your total",
+          "color": "#e2a3d9"
+        },
+        {
+          "id": "c125b",
+          "label": "$125",
+          "weight": 1,
+          "tier": "rare",
+          "cash": 125,
+          "description": "$125 added to your total",
+          "color": "#3f6fd1"
+        },
+        {
+          "id": "c100s",
+          "label": "$100 + spin",
+          "weight": 1,
+          "tier": "legendary",
+          "cash": 100,
+          "description": "$100 added to your total and a free spin",
+          "extraSpins": 1,
+          "color": "#bfe9f5"
+        },
+        {
+          "id": "c300",
+          "label": "$300",
+          "weight": 1,
+          "tier": "jackpot",
+          "cash": 300,
+          "description": "$300 added to your total",
+          "color": "#9fd3f0"
+        },
+        {
+          "id": "c169",
+          "label": "$169",
+          "weight": 1,
+          "tier": "legendary",
+          "cash": 169,
+          "description": "$169 added to your total",
+          "color": "#4f95e3"
         },
         {
           "id": "c250",
@@ -340,82 +926,47 @@
           "weight": 1,
           "tier": "legendary",
           "cash": 250,
-          "description": "$250 added to your total"
+          "description": "$250 added to your total",
+          "color": "#8b6fd0"
         },
         {
-          "id": "bust-c",
-          "label": "Bankrupt",
+          "id": "c200",
+          "label": "$200",
+          "weight": 1,
+          "tier": "legendary",
+          "cash": 200,
+          "description": "$200 added to your total",
+          "color": "#e2a3d9"
+        },
+        {
+          "id": "c69",
+          "label": "$69",
           "weight": 1,
           "tier": "common",
-          "bust": true,
-          "description": "Lose everything, turn over"
+          "cash": 69,
+          "description": "$69 added to your total",
+          "color": "#3f6fd1"
+        },
+        {
+          "id": "x2",
+          "label": "×2 Total",
+          "weight": 1,
+          "tier": "epic",
+          "multiplier": 2,
+          "description": "Your total is multiplied by 2",
+          "color": "#bfe9f5"
         },
         {
           "id": "c150",
           "label": "$150",
           "weight": 1,
-          "tier": "rare",
-          "cash": 150,
-          "description": "$150 added to your total"
-        },
-        {
-          "id": "x5",
-          "label": "×5 Total",
-          "weight": 1,
           "tier": "legendary",
-          "multiplier": 5,
-          "description": "Your total is multiplied by 5"
-        },
-        {
-          "id": "bust-d",
-          "label": "Bankrupt",
-          "weight": 1,
-          "tier": "common",
-          "bust": true,
-          "description": "Lose everything, turn over"
-        },
-        {
-          "id": "c50-spin",
-          "label": "$50 + Spin",
-          "weight": 1,
-          "tier": "rare",
-          "cash": 50,
-          "extraSpins": 1,
-          "description": "$50 added to your total and a free spin"
-        },
-        {
-          "id": "jackpot",
-          "label": "$500 Jackpot",
-          "weight": 0.5,
-          "tier": "jackpot",
-          "cash": 500,
-          "description": "The big one"
-        },
-        {
-          "id": "bust-e",
-          "label": "Bankrupt",
-          "weight": 1,
-          "tier": "common",
-          "bust": true,
-          "description": "Lose everything, turn over"
-        },
-        {
-          "id": "c100b",
-          "label": "$100",
-          "weight": 1,
-          "tier": "common",
-          "cash": 100,
-          "description": "$100 added to your total"
-        },
-        {
-          "id": "half",
-          "label": "Lose Half",
-          "weight": 1,
-          "tier": "common",
-          "multiplier": 0.5,
-          "description": "Your total is cut in half"
+          "cash": 150,
+          "description": "$150 added to your total",
+          "color": "#7cbcef"
         }
-      ]
+      ],
+      "command": "!whale"
     },
     {
       "id": "loser-slots",
@@ -862,7 +1413,8 @@
           "chainWheelId": "whale",
           "description": "Whales only: $50 – $500"
         }
-      ]
+      ],
+      "command": "!grand"
     },
     {
       "id": "prize-vault",

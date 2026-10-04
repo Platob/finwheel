@@ -20,6 +20,9 @@ const idSchema = z
   .max(40)
   .regex(/^[a-z0-9][a-z0-9_-]*$/i, 'Use only letters, numbers, "-" and "_"');
 
+/** Most wheels (and mini-games) one config can hold. */
+export const MAX_WHEELS = 32;
+
 const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i, 'Use a #rrggbb color');
 
 const photoUrl = z
@@ -149,8 +152,13 @@ export const ConfigSchema = z
   .object({
     version: z.literal(1).default(1),
     activeWheelId: idSchema,
-    wheels: z.array(WheelSchema).min(1).max(32),
+    wheels: z.array(WheelSchema).min(1).max(MAX_WHEELS),
     settings: SettingsSchema.prefault({}),
+    /**
+     * Ids of the shipped default wheels this install has already been offered. Defaults added by
+     * later versions are appended once; a default wheel the streamer deleted is not brought back.
+     */
+    knownDefaults: z.array(idSchema).max(200).default([]),
   })
   .superRefine((cfg, ctx) => {
     const wheelIds = new Set<string>();
