@@ -18,18 +18,18 @@ left. Wins throw gold confetti, coins and sparkles.
 
 <div class="grid-shots" markdown>
 
-![Glam look: the Broke Boi Wheel, idle](images/overlay-wheel.jpg){ width="340" }
+![Glam look: the Broke Boi Wheel, idle](images/overlay-wheel.jpg){ width="320" }
 
-![Casino look: the Broke Boi Wheel, idle](images/overlay-casino.jpg){ width="340" }
+![Casino look: the Broke Boi Wheel, idle](images/overlay-casino.jpg){ width="320" }
 
 </div>
 
-|                | Glam                                                        | Casino                                    |
-| -------------- | ----------------------------------------------------------- | ----------------------------------------- |
-| Wheel name     | Bubble title above the wheel, and in the hub                | Plaque under the wheel                    |
-| Money game     | Stat row: spins left, total, next spin                      | `Bank · Spin 2 of 3` badge, top left      |
-| Raffle badge   | Bottom right                                                | Top right                                 |
-| Slice colours  | Pink cycle; gold `×N total`, lavender `×N next` ([more](wheels.md#how-money-slices-look)) | Emerald, bordeaux, onyx; coloured by tier |
+|               | Glam                                                                                      | Casino                                    |
+| ------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Wheel name    | Bubble title above the wheel, and in the hub                                              | Plaque under the wheel                    |
+| Money game    | Stat row: spins left, total, next spin                                                    | `Bank · Spin 2 of 3` badge, top left      |
+| Raffle badge  | Bottom right                                                                              | Top right                                 |
+| Slice colours | Pink cycle; gold `×N total`, lavender `×N next` ([more](wheels.md#how-money-slices-look)) | Emerald, bordeaux, onyx; coloured by tier |
 
 ## Switch the look
 
@@ -52,10 +52,10 @@ photo**.
 ### Upload from the dock
 
 1. In the dock: **Settings → Overlay → Centre photos → Add photos…**, pick one or more images.
-2. The dock resizes each one (longest side 1280 px, JPEG, or PNG when it has transparency) and uploads it:
+2. The dock shrinks each one (longest side 1280 px at most; JPEG, or PNG when it has transparency) and uploads it:
    _Uploading 1/2…_.
-3. When it says _2 photos uploaded: press Save settings_, press **Save settings**. Stay on **Settings** until
-   then: leaving the tab drops unsaved changes.
+3. When it says _Photo uploaded: press Save settings_ (or _2 photos uploaded…_), press **Save settings**. Stay on
+   **Settings** until then: leaving the tab drops unsaved changes.
 
 The thumbnails are numbered in display order: **‹** shows a photo earlier, **×** removes it. With two or more
 photos, **Seconds per photo** appears. A thumbnail reading _No preview_ does not load (see
@@ -75,33 +75,34 @@ it directly, so it must open the image itself, not a page around it.
 
 ### Limits
 
-| What                  | Limit                                                                                     |
-| --------------------- | ----------------------------------------------------------------------------------------- |
-| Photos                | 12                                                                                        |
-| Seconds per photo     | 2 to 120 (default 8)                                                                      |
-| Uploaded file         | 8 MB; JPEG, PNG, WebP or GIF, checked against the file content (SVG is refused)           |
-| Photo URL             | 500 characters                                                                            |
-| Loading               | A photo that fails, or is not loaded after 10 seconds, is skipped                         |
+| What              | Limit                                                                           |
+| ----------------- | ------------------------------------------------------------------------------- |
+| Photos            | 12                                                                              |
+| Seconds per photo | 2 to 120 (default 8)                                                            |
+| Uploaded file     | 8 MB; JPEG, PNG, WebP or GIF, checked against the file content (SVG is refused) |
+| Photo URL         | 500 characters                                                                  |
+| Loading           | A photo that fails, or is not loaded after 10 seconds, is skipped               |
 
 Photos are still images: a GIF shows a single frame.
 
 ### Where uploads are stored
 
-In `data/media/` (inside `FINWHEEL_DATA_DIR` when set), served at `http://localhost:4747/media/<file>`. Files are
-named after a hash of their content, so the same picture uploaded twice is one file (the dock then says _already in
-the list_). Removing a photo from the list keeps its file: delete it from `data/media/` if you no longer need it.
-The [HTTP API](api.md#upload-a-photo) can upload photos too.
+In the `media` folder of the [data folder](configuration.md#data-folder) (`data/media/` by default), served at
+`http://localhost:4747/media/<file>`. Files are named after a hash of their content, so the same image uploaded
+twice is one file (while it is still in the list, the dock says _already in the list_). Removing a photo from the
+list keeps its file: delete it from `data/media/` if you no longer need it. The
+[HTTP API](api.md#upload-a-photo) can upload photos too.
 
 ## Preview and backdrop
 
 The overlay is transparent for OBS. Two URL options paint the look's backdrop behind it: magenta stripes with
 faint crowns, hearts and `$` signs for glam, green felt for casino.
 
-| URL                  | Use                                                                    |
-| -------------------- | ---------------------------------------------------------------------- |
-| `/overlay/`          | OBS browser source, transparent background.                            |
-| `/overlay/?preview`  | Check the overlay in a normal browser.                                 |
-| `/overlay/?backdrop` | The same backdrop in OBS, for a scene with nothing behind the wheel.   |
+| URL                  | Use                                                                  |
+| -------------------- | -------------------------------------------------------------------- |
+| `/overlay/`          | OBS browser source, transparent background.                          |
+| `/overlay/?preview`  | Check the overlay in a normal browser.                               |
+| `/overlay/?backdrop` | The same backdrop in OBS, for a scene with nothing behind the wheel. |
 
 Options combine: `http://localhost:4747/overlay/?theme=casino&backdrop`. All overlay URL options are listed in the
 [HTTP API](api.md#overlay-url-options) page.

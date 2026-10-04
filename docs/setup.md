@@ -42,14 +42,25 @@ curl -X POST http://localhost:4747/api/command -H 'Content-Type: application/jso
 Invoke-RestMethod -Method Post http://localhost:4747/api/command -ContentType 'application/json' -Body '{"type":"spin","player":"VelvetViper","spins":3}'
 ```
 
-<p align="center"><img src="images/overlay-result.jpg" width="420" alt="Overlay during a 3-spin game: $5 won, bank at $8 (preview background)" /></p>
+<div class="grid-shots" markdown>
+
+![Glam overlay during a 3-spin game: result card and stat row (preview background)](images/overlay-result.jpg){ width="420" }
+
+</div>
+
+The overlay uses the glam look; to switch to the casino look or add your photo in the middle of the wheel, see
+[Looks & photos](looks.md).
 
 ## 3. Add the control dock
 
 In OBS: **Docks → Custom Browser Docks…**, Dock Name `FinWheel`, URL `http://localhost:4747/dock/`, **Apply**.
 It opens floating: drag it into place. To play: pick a wheel, type a player, set the spins, press **Spin**.
 
-<p align="center"><img src="images/setup-dock-play.jpg" width="380" alt="Dock Play tab: wheel chips, player name, spins stepper and Spin button" /></p>
+<div class="grid-shots" markdown>
+
+![Dock Play tab: wheel chips, player name, spins stepper and Spin button](images/setup-dock-play.jpg){ width="380" }
+
+</div>
 
 ## 4. OBS hotkeys (optional)
 

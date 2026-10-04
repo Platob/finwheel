@@ -16,10 +16,13 @@ In the dock: **Settings → Twitch chat → Channel** = your channel name → **
 Wheel ids (shown in the dock's **Wheels** tab): `broke-boi`, `simp`, `whale`, `grand`,
 `prize-vault`, `dares`. To let viewers type `!spin`, set **Who can spin** to _Everyone_ or _Subscribers_.
 
-<p align="center">
-  <img src="images/setup-dock-twitch.jpg" width="380" alt="Dock Twitch chat settings, connected" />
-  <img src="images/overlay-raffle.jpg" width="420" alt="Raffle wheel filled with entrants and the !join badge" />
-</p>
+<div class="grid-shots" markdown>
+
+![Dock Twitch chat settings, connected](images/setup-dock-twitch.jpg){ width="380" }
+
+![Raffle wheel filled with entrants and the !join badge](images/overlay-raffle.jpg){ width="420" }
+
+</div>
 
 ## Announce results in chat (optional)
 

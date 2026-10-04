@@ -18,7 +18,8 @@ wheels in your browser, then follow the full setup, Twitch and wheel-building gu
 - **Two looks.** _Glam_ (pink & gold, the default) or _Casino_ (emerald & gold), picked in the dock or per
   browser source with `?theme=`.
 - **Money games.** Choose how many spins a player gets. Slices add cash (`$5`), multiply the total (`×2 total`),
-  double the next spin's cash (`×2 next`), grant bonus spins or go **Bankrupt**. A total screen ends the game.
+  double the next spin's cash (`×2 next`), grant bonus spins or go **Bankrupt**. A game that lasts 2+ spins ends
+  on a total screen.
 - **Wheel categories.** _The Grand Wheel_ sends players on to _Broke Boi_, _Simp_ or _Whale_ (money, from no risk
   to high risk), the _Prize Vault_ or the _Dare Wheel_. The dock simulates each wheel's payouts and bust rate.
 - **Raffles.** Viewers type `!join`, entrants fill the wheel live, and the winner can go straight to a prize wheel.
@@ -40,10 +41,10 @@ npm start
 
 Keep the terminal open, then in OBS:
 
-| Add                                                    | URL                              | Notes                                                 |
-| ------------------------------------------------------ | -------------------------------- | ----------------------------------------------------- |
-| Browser source (**Sources → + → Browser**)             | `http://localhost:4747/overlay/` | Width / Height `1080` / `1080`, **Control audio via OBS** |
-| Custom dock (**Docks → Custom Browser Docks…**)        | `http://localhost:4747/dock/`    | Pick a wheel, type a player, press **Spin**           |
+| Add                                             | URL                              | Notes                                                          |
+| ----------------------------------------------- | -------------------------------- | -------------------------------------------------------------- |
+| Browser source (**Sources → + → Browser**)      | `http://localhost:4747/overlay/` | Width / Height `1080` / `1080`, tick **Control audio via OBS** |
+| Custom dock (**Docks → Custom Browser Docks…**) | `http://localhost:4747/dock/`    | Pick a wheel, type a player, press **Spin**                    |
 
 Next steps (Twitch chat, channel points, hotkeys, your own wheels): see the
 [guide](https://platob.github.io/finwheel/setup/).

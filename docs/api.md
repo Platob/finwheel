@@ -38,13 +38,13 @@ curl -X POST http://localhost:4747/api/media -H 'Content-Type: image/jpeg' --dat
 Uploading does not show the photo yet: add the returned `url` to the centre photos (dock **Settings → Overlay →
 Centre photos**, paste it, **Add by URL**, **Save settings**).
 
-| Status | `error`                                                                 |
-| ------ | ----------------------------------------------------------------------- |
-| 401    | `Missing or bad token`                                                  |
-| 405    | `Use POST`                                                              |
-| 413    | `Images are limited to 8 MB`                                            |
-| 415    | `Upload a JPEG, PNG, WebP or GIF image` (unsupported `Content-Type`)    |
-| 415    | `The file is not a JPEG, PNG, WebP or GIF image of the declared type`   |
+| Status | `error`                                                               |
+| ------ | --------------------------------------------------------------------- |
+| 401    | `Missing or bad token`                                                |
+| 405    | `Use POST`                                                            |
+| 413    | `Images are limited to 8 MB`                                          |
+| 415    | `Upload a JPEG, PNG, WebP or GIF image` (unsupported `Content-Type`)  |
+| 415    | `The file is not a JPEG, PNG, WebP or GIF image of the declared type` |
 
 `GET /media/<file>` serves an uploaded image (no token needed, cached by browsers for a year since the name
 changes with the content); unknown names return 404.
@@ -53,11 +53,11 @@ changes with the content); unknown names return 404.
 
 Add them to `http://localhost:4747/overlay/`, joined with `&` (`/overlay/?theme=casino&backdrop`):
 
-| Option                       | Effect                                                                                      |
-| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| Option                         | Effect                                                                                    |
+| ------------------------------ | ----------------------------------------------------------------------------------------- |
 | `?theme=glam`, `?theme=casino` | Forces this [look](looks.md) on this source, whatever **Settings → Overlay → Look** says. |
-| `?preview`                   | Paints the look's backdrop, to test the overlay in a normal browser.                        |
-| `?backdrop`                  | The same backdrop, for an OBS scene with nothing behind the wheel.                          |
-| `?mute=1`                    | Silences this source.                                                                       |
+| `?preview`                     | Paints the look's backdrop, to test the overlay in a normal browser.                      |
+| `?backdrop`                    | The same backdrop, for an OBS scene with nothing behind the wheel.                        |
+| `?mute=1`                      | Silences this source.                                                                     |
 
 The dock takes `?token=…` when the server has a [control token](configuration.md#security).

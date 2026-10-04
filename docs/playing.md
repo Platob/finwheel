@@ -14,7 +14,7 @@ and best payout, and how often it pays nothing.
 
 <div class="grid-shots" markdown>
 
-![Dock Play tab: wheel chips, player name, spins stepper, Spin button, queue and history](images/dock.jpg){ width="300" }
+![Dock Play tab during a game: wheel chips, spins stepper, Queue button, bank line, queue and history](images/dock.jpg){ width="300" }
 
 </div>
 
@@ -23,10 +23,10 @@ and best payout, and how often it pays nothing.
 A money game (any wheel with cash, `×N` or bankrupt slices) keeps a running total, shown differently by each
 [look](looks.md):
 
-| Look   | Where                                                                                                         |
-| ------ | ------------------------------------------------------------------------------------------------------------- |
+| Look   | Where                                                                                                                  |
+| ------ | ---------------------------------------------------------------------------------------------------------------------- |
 | Glam   | **Stat row** above the wheel: **spins left**, **total**, **next spin** (`×1`; `×2` in lavender once a boost is armed). |
-| Casino | **Bank** badge, top left: `Bank · Spin 2 of 3` and the running total.                                         |
+| Casino | **Bank** badge, top left: `Bank · Spin 2 of 3` and the running total.                                                  |
 
 Bonus spins and chained wheels raise the spin count as they are won. When the glam overlay is idle on a money
 wheel, the stat row previews the next game: the wheel's default spins, `$0`, `×1`. The status line under it shows
@@ -64,22 +64,22 @@ Every spin ends on a card with the slice, its description and, in money games, t
 **Final total** on the last spin, **Lost** on bankrupt) and what changed (`+$14 · ×2 boost`, `×2`). Under it,
 what comes next: `+1 free spin`, `Next: Simp Wheel`, `Next spin coming up`.
 
-| Heading                  | When                                                                         |
-| ------------------------ | ---------------------------------------------------------------------------- |
-| **Winner**               | A slice for a named player.                                                  |
-| **The wheel has spoken** | A slice with no player name.                                                 |
+| Heading                  | When                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **Winner**               | A slice for a named player.                                                                                  |
+| **The wheel has spoken** | A slice with no player name.                                                                                 |
 | **Boost!**               | A `×N next` slice armed a boost (the card says _Your next spin pays ×2_ unless the slice has a description). |
-| **Cash out**             | The last spin of a money game.                                               |
-| **Bankrupt**             | A bankrupt slice. With nothing in the bank: _Lucky break — nothing in the bank to lose_. |
-| **Raffle winner**        | A raffle draw.                                                               |
+| **Cash out**             | The last spin of a money game.                                                                               |
+| **Bankrupt**             | A bankrupt slice. With nothing in the bank: _Lucky break — nothing in the bank to lose_.                     |
+| **Raffle winner**        | A raffle draw.                                                                                               |
 
 A `×N total` slice on an empty bank says _Nothing in the bank to multiply yet_.
 
 <div class="grid-shots" markdown>
 
-![Glam overlay mid-game: a result card, with the stat row above the wheel](images/overlay-result.jpg){ width="360" }
+![Glam overlay mid-game: a result card, with the stat row above the wheel](images/overlay-result.jpg){ width="320" }
 
-![The Boost! card after landing on ×2 Next, the stat row showing ×2 next spin](images/overlay-boost.jpg){ width="360" }
+![The Boost! card after landing on ×2 Next, the stat row showing ×2 next spin](images/overlay-boost.jpg){ width="320" }
 
 </div>
 
