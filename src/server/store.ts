@@ -41,6 +41,8 @@ const SessionSchema = z.object({
             cash: z.number(),
             multiplier: z.number(),
             bust: z.boolean(),
+            boost: z.number().default(1),
+            nextMultiplier: z.number().default(1),
           })
           .nullable()
           .default(null),

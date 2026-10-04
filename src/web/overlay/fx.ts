@@ -1,4 +1,4 @@
-import type { Tier } from '../../shared/schema';
+import type { ThemeId, Tier } from '../../shared/schema';
 import { TIER_STYLES } from '../../shared/tiers';
 
 type Kind = 'confetti' | 'coin' | 'spark';
@@ -32,9 +32,17 @@ export class Celebration {
   private lastFrame = 0;
   private rain: { until: number; rate: number; accent: string; carry: number } | null = null;
   private coin: HTMLCanvasElement | null = null;
+  private theme: ThemeId = 'glam';
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;
+  }
+
+  /** Picks the particle look (TODO(glam-fx): pink palette and hearts for `glam`). */
+  setTheme(theme: ThemeId): void {
+    if (theme === this.theme) return;
+    this.theme = theme;
+    this.coin = null;
   }
 
   resize(width: number, height: number, dpr: number): void {

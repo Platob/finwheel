@@ -1,28 +1,37 @@
 import '@fontsource/cinzel/700.css';
 import '@fontsource/cinzel/900.css';
+import '@fontsource/fredoka/500.css';
+import '@fontsource/fredoka/600.css';
+import '@fontsource/fredoka/700.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/700.css';
+import '@fontsource/lilita-one/400.css';
 import '../common/theme.css';
 import './overlay.css';
 
 import { formatMoney } from '../../shared/rules';
 import { TIER_STYLES } from '../../shared/tiers';
+import type { ThemeId } from '../../shared/schema';
 import type { AppState, SpinResult, TurnSummary, WheelView } from '../../shared/types';
 import { connect } from '../common/socket';
 import { SoundBoard } from './audio';
 import { Celebration } from './fx';
 import { SpinMotion } from './spin-motion';
-import { DISPLAY_FONT, UI_FONT } from './wheel-face';
+import { getTheme, parseTheme } from './themes';
 import { WheelScene } from './wheel-scene';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
 if (params.has('preview')) document.body.classList.add('preview');
 const muted = params.get('mute') === '1';
+/** `?theme=casino` forces a look on one browser source, whatever the dock says. */
+const forcedTheme = parseTheme(params.get('theme'));
 
 const stage = $<HTMLElement>('stage');
-const scene = new WheelScene($<HTMLCanvasElement>('wheel'));
+const scene = new WheelScene($<HTMLCanvasElement>('wheel'), getTheme(forcedTheme ?? 'glam'));
 const fx = new Celebration($<HTMLCanvasElement>('fx'));
+document.body.dataset.theme = scene.themeId;
+fx.setTheme(scene.themeId);
 const sound = new SoundBoard();
 
 const ui = {
@@ -72,11 +81,54 @@ function layout() {
 }
 window.addEventListener('resize', layout);
 layout();
-void Promise.all([
-  document.fonts.load(`700 40px ${DISPLAY_FONT}`),
-  document.fonts.load(`900 40px ${DISPLAY_FONT}`),
-  document.fonts.load(`700 20px ${UI_FONT}`),
-]).then(() => scene.refresh());
+
+/** Redraws canvas text once the theme's web fonts are ready. */
+function loadFonts() {
+  const theme = scene.themeId;
+  void Promise.all(getTheme(theme).fonts.map((font) => document.fonts.load(font))).then(() => {
+    if (scene.themeId === theme) scene.refresh();
+  });
+}
+loadFonts();
+
+function applyTheme(id: ThemeId) {
+  if (id === scene.themeId) return;
+  scene.setTheme(getTheme(id));
+  fx.setTheme(id);
+  document.body.dataset.theme = id;
+  loadFonts();
+}
+
+// ── Centre photos ────────────────────────────────────────────────────────
+
+let photoKey = '';
+
+/** Loads the centre photos; ones that fail to load are skipped (with a console warning). */
+function applyPhotos(urls: readonly string[], seconds: number) {
+  const key = JSON.stringify([urls, seconds]);
+  if (key === photoKey) return;
+  photoKey = key;
+  void Promise.all(
+    urls.map(async (url) => {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+      try {
+        await img.decode();
+        return img;
+      } catch {
+        console.warn(`[finwheel] Could not load centre photo ${url}`);
+        return null;
+      }
+    }),
+  ).then((images) => {
+    if (key !== photoKey) return;
+    scene.setHubPhotos(
+      images.filter((img): img is HTMLImageElement => img !== null),
+      seconds,
+    );
+  });
+}
 
 // ── State sync ───────────────────────────────────────────────────────────
 
@@ -92,6 +144,8 @@ function applyState(next: AppState) {
   state = next;
   const { overlay } = next.config.settings;
   sound.configure(overlay.sound && !muted, overlay.volume);
+  applyTheme(forcedTheme ?? overlay.theme);
+  applyPhotos(overlay.hubPhotos, overlay.hubPhotoSeconds);
   const now = performance.now();
 
   if (next.spin && next.spin.id !== motion?.spin.id) {

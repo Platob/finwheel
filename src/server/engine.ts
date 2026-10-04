@@ -392,6 +392,7 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
       spinNumber: Math.max(1, current),
       spinsPlanned: Math.max(1, current) + turn.pending.length,
       money: turn.money,
+      nextMultiplier: 1, // TODO(next-multiplier): read the boost armed on the turn
     };
   }
 
@@ -488,6 +489,8 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
             cash: prize.cash,
             multiplier: prize.multiplier,
             bust: prize.bust,
+            boost: 1, // TODO(next-multiplier): boost applied to this spin
+            nextMultiplier: 1, // TODO(next-multiplier): boost armed for the next spin
           };
           if (outcome.ended) payout = outcome.after;
         }

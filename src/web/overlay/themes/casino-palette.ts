@@ -1,4 +1,4 @@
-import type { Segment } from '../../shared/types';
+import type { Segment } from '../../../shared/types';
 
 export interface SliceStyle {
   /** Colour near the hub, mid-slice and at the rim. */

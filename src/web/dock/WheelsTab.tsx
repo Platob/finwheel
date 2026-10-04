@@ -20,6 +20,7 @@ function newPrize(): Prize {
     tier: 'common',
     cash: 0,
     multiplier: 1,
+    nextMultiplier: 1,
     extraSpins: 0,
     bust: false,
   };

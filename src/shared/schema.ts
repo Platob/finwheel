@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { ROLES, SIZINGS, TIERS } from './constants.js';
+import { ROLES, SIZINGS, THEMES, TIERS } from './constants.js';
 
-export { ROLES, SIZINGS, TIERS };
+export { ROLES, SIZINGS, THEMES, TIERS };
 
 const idSchema = z
   .string()
@@ -11,6 +11,12 @@ const idSchema = z
   .regex(/^[a-z0-9][a-z0-9_-]*$/i, 'Use only letters, numbers, "-" and "_"');
 
 const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i, 'Use a #rrggbb color');
+
+const photoUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .regex(/^(https?:\/\/|\/media\/)\S+$/i, 'Use an uploaded photo or an http(s):// image URL');
 
 export const PrizeSchema = z.object({
   id: idSchema,
@@ -28,6 +34,8 @@ export const PrizeSchema = z.object({
   cash: z.number().min(0).max(1_000_000).default(0),
   /** Multiplies the running total after adding `cash` (2 = double, 0.5 = lose half). */
   multiplier: z.number().min(0).max(1000).default(1),
+  /** Multiplies the cash won on the player's next spin (2 = "×2 next"). Stacks with another boost. */
+  nextMultiplier: z.number().min(1).max(100).default(1),
   /** Free re-spins of the same wheel added to the turn. */
   extraSpins: z.number().int().min(0).max(10).default(0),
   /** Bankrupt: the running total is lost and the turn ends immediately. */
@@ -77,6 +85,12 @@ export const SettingsSchema = z.object({
       sound: z.boolean().default(true),
       volume: z.number().min(0).max(1).default(0.6),
       showRaffleBadge: z.boolean().default(true),
+      /** Look of the wheel and its signs. */
+      theme: z.enum(THEMES).default('glam'),
+      /** Photos shown in the centre of the wheel (uploaded `/media/…` files or http(s) URLs). */
+      hubPhotos: z.array(photoUrl).max(12).default([]),
+      /** Seconds each centre photo stays up when there are several. */
+      hubPhotoSeconds: z.number().int().min(2).max(120).default(8),
     })
     .prefault({}),
   raffle: z
@@ -208,6 +222,7 @@ export const CommandSchema = z.discriminatedUnion('type', [
 export type Tier = (typeof TIERS)[number];
 export type Role = (typeof ROLES)[number];
 export type Sizing = (typeof SIZINGS)[number];
+export type ThemeId = (typeof THEMES)[number];
 export type Prize = z.output<typeof PrizeSchema>;
 export type Wheel = z.output<typeof WheelSchema>;
 export type Settings = z.output<typeof SettingsSchema>;
