@@ -141,8 +141,8 @@ export function slotText(
       (prize.multiplier > 1 ? `×${prize.multiplier} total` : '') ||
       (next ? `${next} next` : '');
     if (!caption) {
-      // Keep any extra words of the label ("$500 Jackpot" → "Jackpot").
-      const rest = prize.label.replace(amount, '').replace(/^[\s+·:-]+|[\s+·:-]+$/g, '');
+      // Keep any extra words of the label ("$500 Jackpot" → "Jackpot", "$100/10000 bits" → "10000 bits").
+      const rest = prize.label.replace(amount, '').replace(/^[\s+·:/-]+|[\s+·:/-]+$/g, '');
       caption = rest !== prize.label.trim() ? rest : '';
     }
     return { amount, caption };

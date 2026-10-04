@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfigSchema } from '../../shared/schema.js';
 import { SETTLE_MS, WheelEngine } from '../engine.js';
-import { TwitchBot, type ChatConnection } from './bot.js';
+import { parseGameArgs, TwitchBot, type ChatConnection } from './bot.js';
 import type { ChatMessage } from './irc.js';
 
 class FakeConnection extends EventEmitter implements ChatConnection {
@@ -49,6 +49,14 @@ function setup(
     wheels: [
       { id: 'main', name: 'Main', ...main },
       { id: 'vip', name: 'VIP', prizes: [{ id: 'x', label: 'X', weight: 1 }] },
+      {
+        id: 'Loser-Slots',
+        name: 'Loser Slots',
+        game: 'slots',
+        command: ' !Slots ',
+        spinsPerTurn: 3,
+        prizes: [{ id: 'cherry', label: '$2', weight: 1, cash: 2, icon: '🍒' }],
+      },
     ],
     settings: {
       spin: { autoAdvanceQueue: false },
@@ -160,5 +168,92 @@ describe('TwitchBot', () => {
     vi.advanceTimersByTime(engine.snapshot().spin!.durationMs + SETTLE_MS);
     expect(engine.snapshot().result).toMatchObject({ label: '$5', payout: 10 });
     expect(connection.said.slice(said)).toEqual(['💰 @Ana walks away with $10!']);
+  });
+
+  describe('wheel chat commands', () => {
+    it('let moderators start a game on that wheel, with a player and a spin count', () => {
+      const { engine, bot } = setup();
+      bot.handleMessage(chat('!slots 5 @Ana', { isModerator: true }));
+      bot.handleMessage(chat('!SLOTS', { isBroadcaster: true, displayName: 'Fin' }));
+      // A wheel id after a wheel command does not change the wheel, nor become the player.
+      bot.handleMessage(chat('!slots vip', { isModerator: true, displayName: 'Mod' }));
+      expect(engine.snapshot().queue).toMatchObject([
+        { player: 'Ana', spins: 5, wheelId: 'Loser-Slots', source: 'chat' },
+        { player: 'Fin', wheelId: 'Loser-Slots' },
+        { player: 'Mod', wheelId: 'Loser-Slots' },
+      ]);
+      expect(engine.snapshot().queue[1]!.spins).toBeUndefined();
+    });
+
+    it('apply the spin permission, ignoring viewer arguments', () => {
+      const { engine, bot } = setup({ spinPermission: 'subscriber' });
+      bot.handleMessage(chat('!slots'));
+      expect(engine.snapshot().queue).toHaveLength(0);
+      bot.handleMessage(chat('!slots @Someone 9 vip', { isSubscriber: true }));
+      expect(engine.snapshot().queue).toMatchObject([{ player: 'Viewer', wheelId: 'Loser-Slots' }]);
+      expect(engine.snapshot().queue[0]!.spins).toBeUndefined();
+    });
+
+    it('share the queue check and the per-viewer cooldown with the spin command', () => {
+      const { engine, bot, advance } = setup({ spinPermission: 'everyone', spinCooldownSec: 60 });
+      bot.handleMessage(chat('!slots'));
+      bot.handleMessage(chat('!spin', { login: 'viewer', displayName: 'viewer' }));
+      expect(engine.snapshot().queue).toMatchObject([{ player: 'Viewer', wheelId: 'Loser-Slots' }]);
+      engine.clearQueue();
+      bot.handleMessage(chat('!spin'));
+      bot.handleMessage(chat('!slots'));
+      expect(engine.snapshot().queue).toHaveLength(0);
+      advance(61_000);
+      bot.handleMessage(chat('!spin'));
+      expect(engine.snapshot().queue).toMatchObject([{ player: 'Viewer', wheelId: 'main' }]);
+    });
+
+    it('ignore other words and follow a renamed spin command', () => {
+      const { engine, bot } = setup({ spinCommand: '!Wheel' });
+      bot.handleMessage(chat('!spin', { isModerator: true }));
+      bot.handleMessage(chat('!slotsx', { isModerator: true }));
+      bot.handleMessage(chat('slots', { isModerator: true }));
+      expect(engine.snapshot().queue).toHaveLength(0);
+      bot.handleMessage(chat('!wheel @Bo loser-slots 2', { isModerator: true }));
+      bot.handleMessage(chat('!slots @Cy', { isModerator: true }));
+      expect(engine.snapshot().queue).toMatchObject([
+        { player: 'Bo', wheelId: 'Loser-Slots', spins: 2 },
+        { player: 'Cy', wheelId: 'Loser-Slots' },
+      ]);
+    });
+
+    it('announce results like the spin command', () => {
+      const { engine, bot, connection } = setup(
+        {},
+        { spinsPerTurn: 1, prizes: [{ id: 'x', label: 'X', weight: 1 }] },
+      );
+      bot.handleMessage(chat('!slots 1', { isModerator: true, displayName: 'Ana' }));
+      engine.spinNext();
+      expect(engine.snapshot().spin).toMatchObject({
+        player: 'Ana',
+        wheel: { key: 'Loser-Slots', game: 'slots' },
+      });
+      vi.advanceTimersByTime(engine.snapshot().spin!.durationMs + SETTLE_MS);
+      expect(connection.said.at(-1)).toBe('💰 @Ana walks away with $2!');
+    });
+  });
+});
+
+describe('parseGameArgs', () => {
+  const ids = ['simp', 'Loser-Slots'];
+
+  it('reads the player, the spin count and the wheel in any order', () => {
+    expect(parseGameArgs(['@Ana', '5', 'simp'], ids)).toEqual({ player: 'Ana', spins: 5, wheelId: 'simp' });
+    expect(parseGameArgs(['loser-slots', '12', 'bo'], ids)).toEqual({
+      player: 'bo',
+      spins: 12,
+      wheelId: 'Loser-Slots',
+    });
+    expect(parseGameArgs([], ids)).toEqual({ player: '' });
+  });
+
+  it('keeps the first name, and reads "@simp" and long numbers as names', () => {
+    expect(parseGameArgs(['@simp', 'Bo'], ids)).toEqual({ player: 'simp' });
+    expect(parseGameArgs(['100', '3'], ids)).toEqual({ player: '100', spins: 3 });
   });
 });

@@ -2,6 +2,7 @@ import type { GameType, Tier } from '../../../shared/schema';
 import type { WheelView } from '../../../shared/types';
 import type { SoundBoard } from '../audio';
 import type { WheelTheme } from '../themes/types';
+import type { Framing } from '../wheel-scene';
 import { ClawStage } from './claw';
 import { GiftsStage } from './gifts';
 import { PlinkoStage } from './plinko';
@@ -17,6 +18,16 @@ const STAGES: Record<GameType, new (context: StageContext) => GameStage> = {
   gifts: GiftsStage,
 };
 
+export interface DirectorOptions {
+  /**
+   * Moves the play area (and the wheel) away from where the theme puts it, e.g. centred on a page
+   * without the overlay's title and signs.
+   */
+  framing?: Framing | null;
+  /** The game shown first (default: the wheel). */
+  game?: GameType;
+}
+
 /**
  * Owns one stage per game type (created on first use) and forwards to the one on screen. Size,
  * theme, photos and the tick handler reach every stage, so switching games is instant.
@@ -30,13 +41,19 @@ export class GameDirector {
   private dpr = 1;
   private photos: readonly HTMLImageElement[] = [];
   private photoSeconds = 8;
+  private readonly framing: Framing | null;
+  /** The theme the stages paint with: `theme`, with the framing's layout when there is one. */
+  private stageTheme: WheelTheme;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private theme: WheelTheme,
     private readonly sound: SoundBoard,
+    options: DirectorOptions = {},
   ) {
-    this.active = this.stage('wheel');
+    this.framing = options.framing ?? null;
+    this.stageTheme = this.framed(theme);
+    this.active = this.stage(options.game ?? 'wheel');
   }
 
   get themeId(): WheelTheme['id'] {
@@ -62,7 +79,8 @@ export class GameDirector {
   setTheme(theme: WheelTheme): void {
     if (theme === this.theme) return;
     this.theme = theme;
-    for (const stage of this.stages.values()) stage.setTheme(theme);
+    this.stageTheme = this.framed(theme);
+    for (const stage of this.stages.values()) stage.setTheme(this.stageTheme);
   }
 
   refresh(): void {
@@ -102,11 +120,17 @@ export class GameDirector {
   private stage(game: GameType): GameStage {
     let stage = this.stages.get(game);
     if (stage) return stage;
-    stage = new STAGES[game]({ canvas: this.canvas, theme: this.theme, sound: this.sound });
+    stage = new STAGES[game]({ canvas: this.canvas, theme: this.stageTheme, sound: this.sound });
     stage.onTick = (speed) => this.onTick?.(speed);
     if (this.size > 0) stage.resize(this.size, this.dpr);
     if (this.photos.length > 0) stage.setPhotos(this.photos, this.photoSeconds);
     this.stages.set(game, stage);
     return stage;
+  }
+
+  /** The theme with its play area moved to the framing (the stages read it from `layout`). */
+  private framed(theme: WheelTheme): WheelTheme {
+    const framing = this.framing;
+    return framing ? { ...theme, layout: { ...theme.layout, ...framing } } : theme;
   }
 }

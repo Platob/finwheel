@@ -1,4 +1,4 @@
-/* Live wheels on the documentation site. Everything is scoped under #fw-live. */
+/* Live wheels and games on the documentation site. Everything is scoped under #fw-live. */
 #fw-live {
   --card-bg:
     repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.045) 0 22px, transparent 22px 52px),
@@ -108,6 +108,27 @@
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--accent);
+}
+
+#fw-live .fw-live-tag {
+  display: inline-block;
+  margin: 0.35rem 0 0;
+  padding: 0.12rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--card-border) 60%, transparent);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--card-muted);
+}
+
+#fw-live .fw-live-tag code {
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 1em;
+  font-weight: 700;
 }
 
 #fw-live .fw-live-stage {

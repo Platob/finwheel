@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import { formatMoney, simulateTurns } from '../../shared/rules';
 import type { AppState, SpinResult } from '../../shared/types';
 import type { Send } from './server';
-import { Empty, percent, Section, timeAgo } from './ui';
+import { Empty, GAME_INFO, percent, playCount, Section, timeAgo } from './ui';
 
 const SOURCE_LABELS: Record<string, string> = {
   manual: 'Dock',
@@ -37,8 +37,12 @@ export function PlayTab({ state, send }: { state: AppState; send: Send }) {
             <button
               key={wheel.id}
               class={`chip${wheel.id === activeWheel.id ? ' is-active' : ''}`}
+              title={`${GAME_INFO[wheel.game].label}${wheel.command ? ` · ${wheel.command} in chat` : ''}`}
               onClick={() => send({ type: 'wheel.select', wheelId: wheel.id })}
             >
+              <span class="chip-icon" aria-hidden="true">
+                {GAME_INFO[wheel.game].icon}
+              </span>
               {wheel.name}
             </button>
           ))}
@@ -57,12 +61,13 @@ export function PlayTab({ state, send }: { state: AppState; send: Send }) {
             maxLength={40}
             onInput={(e) => setPlayer(e.currentTarget.value)}
           />
-          <div class="stepper" title="Number of spins in this game">
+          <div class="stepper" title={`Number of ${GAME_INFO[activeWheel.game].plays} in this game`}>
             <button type="button" class="icon-btn" disabled={spins <= 1} onClick={() => setSpins(spins - 1)}>
               −
             </button>
             <span>
-              <strong>{spins}</strong> {spins === 1 ? 'spin' : 'spins'}
+              <strong>{spins}</strong>{' '}
+              {spins === 1 ? GAME_INFO[activeWheel.game].play : GAME_INFO[activeWheel.game].plays}
             </span>
             <button
               type="button"
@@ -74,7 +79,7 @@ export function PlayTab({ state, send }: { state: AppState; send: Send }) {
             </button>
           </div>
           <button class="btn btn--gold btn--big" type="submit">
-            {busy ? 'Queue' : 'Spin'}
+            {busy ? 'Queue' : activeWheel.game === 'wheel' ? 'Spin' : 'Play'}
           </button>
         </form>
         <Odds wheelId={activeWheel.id} state={state} spins={spins} />
@@ -94,7 +99,7 @@ export function PlayTab({ state, send }: { state: AppState; send: Send }) {
           {stage === 'idle' && <span class="muted">Waiting for a spin…</span>}
           {stage === 'spinning' && spin && (
             <span>
-              Spinning <strong>{spin.wheel.name}</strong>
+              {spin.wheel.game === 'wheel' ? 'Spinning' : 'Playing'} <strong>{spin.wheel.name}</strong>
               {spin.player && (
                 <>
                   {' '}
@@ -117,7 +122,7 @@ export function PlayTab({ state, send }: { state: AppState; send: Send }) {
               <span>Bank</span>
               <strong>{money(turn.total)}</strong>
               <span class="muted">
-                spin {turn.spinNumber} of {turn.spinsPlanned}
+                {GAME_INFO[spin?.wheel.game ?? 'wheel'].play} {turn.spinNumber} of {turn.spinsPlanned}
                 {turn.nextMultiplier > 1 && ` · ×${turn.nextMultiplier} next`}
               </span>
             </div>
@@ -150,26 +155,29 @@ export function PlayTab({ state, send }: { state: AppState; send: Send }) {
           <Empty>No one is waiting. Chat commands, channel points and bits add players here.</Empty>
         ) : (
           <ol class="list">
-            {queue.map((item) => (
-              <li key={item.id} class="list-row">
-                <span class="tag">{SOURCE_LABELS[item.source] ?? item.source}</span>
-                <span class="grow">
-                  <strong>{item.player || 'Anonymous'}</strong>
-                  <span class="muted">
-                    {' '}
-                    · {config.wheels.find((w) => w.id === item.wheelId)?.name ?? item.wheelId}
-                    {item.spins ? ` · ${item.spins} spins` : ''}
+            {queue.map((item) => {
+              const wheel = config.wheels.find((w) => w.id === item.wheelId);
+              return (
+                <li key={item.id} class="list-row">
+                  <span class="tag">{SOURCE_LABELS[item.source] ?? item.source}</span>
+                  <span class="grow">
+                    <strong>{item.player || 'Anonymous'}</strong>
+                    <span class="muted">
+                      {' '}
+                      · {wheel ? `${GAME_INFO[wheel.game].icon} ${wheel.name}` : item.wheelId}
+                      {item.spins ? ` · ${playCount(wheel?.game ?? 'wheel', item.spins)}` : ''}
+                    </span>
                   </span>
-                </span>
-                <button
-                  class="icon-btn"
-                  title="Remove"
-                  onClick={() => send({ type: 'queue.remove', id: item.id })}
-                >
-                  ×
-                </button>
-              </li>
-            ))}
+                  <button
+                    class="icon-btn"
+                    title="Remove"
+                    onClick={() => send({ type: 'queue.remove', id: item.id })}
+                  >
+                    ×
+                  </button>
+                </li>
+              );
+            })}
           </ol>
         )}
         {!config.settings.spin.autoAdvanceQueue && queue.length > 0 && (
@@ -247,8 +255,9 @@ function Odds({ wheelId, state, spins }: { wheelId: string; state: AppState; spi
     () => simulateTurns(config, wheelId, 20000, Math.random, spins),
     [config, wheelId, spins],
   );
-  const per = spins === 1 ? 'per spin' : `per ${spins}-spin game`;
   if (!wheel) return null;
+  const { play } = GAME_INFO[wheel.game];
+  const per = spins === 1 ? `per ${play}` : `per ${spins}-${play} game`;
   const available = wheel.prizes.filter((p) => p.stock === null || p.stock > 0);
   const total = available.reduce((sum, p) => sum + p.weight, 0);
   const money = (value: number) => formatMoney(value, config.settings.currency);
@@ -291,7 +300,9 @@ function Odds({ wheelId, state, spins }: { wheelId: string; state: AppState; spi
             return (
               <tr key={prize.id} class={out ? 'is-out' : ''}>
                 <td>
-                  <span class={`dot dot--${prize.bust ? 'bust' : prize.tier}`} /> {prize.label}
+                  <span class={`dot dot--${prize.bust ? 'bust' : prize.tier}`} />{' '}
+                  {prize.icon && `${prize.icon} `}
+                  {prize.label}
                 </td>
                 <td class="num">{out ? 'out' : percent(prize.weight / total)}</td>
                 <td class="num muted">{prize.stock === null ? '∞' : `${prize.stock} left`}</td>
@@ -302,8 +313,8 @@ function Odds({ wheelId, state, spins }: { wheelId: string; state: AppState; spi
       </table>
       {stats && (
         <p class="hint">
-          Simulated over {stats.turns.toLocaleString()} games of {spins} spin{spins === 1 ? '' : 's'} (
-          {stats.averageSpins.toFixed(1)} on average with bonus spins and bankrupts).
+          Simulated over {stats.turns.toLocaleString()} games of {playCount(wheel.game, spins)} (
+          {stats.averageSpins.toFixed(1)} on average with bonus {GAME_INFO[wheel.game].plays} and bankrupts).
         </p>
       )}
     </details>

@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events';
+import { normalizeCommand, wheelForCommand } from '../../shared/chat-commands.js';
 import { formatMoney } from '../../shared/rules.js';
 import type { Role } from '../../shared/schema.js';
 import type { SpinResult, TwitchStatus } from '../../shared/types.js';
@@ -15,6 +16,29 @@ export function roleRank(message: ChatMessage): number {
   if (message.isVip) return ROLE_RANK.vip;
   if (message.isSubscriber) return ROLE_RANK.subscriber;
   return ROLE_RANK.everyone;
+}
+
+export interface GameArgs {
+  /** Player named by a moderator ("@viewer" or a bare name), '' when none. */
+  player: string;
+  spins?: number;
+  wheelId?: string;
+}
+
+/**
+ * Reads a moderator's game arguments, in any order: "@viewer 5 simp" names the player, the number
+ * of spins (1–2 digits) and a wheel id (any case). The first other word is the player.
+ */
+export function parseGameArgs(args: readonly string[], wheelIds: Iterable<string>): GameArgs {
+  const ids = new Map([...wheelIds].map((id) => [id.toLowerCase(), id]));
+  const parsed: GameArgs = { player: '' };
+  for (const arg of args) {
+    const wheelId = arg.startsWith('@') ? undefined : ids.get(arg.toLowerCase());
+    if (/^\d{1,2}$/.test(arg)) parsed.spins = Number(arg);
+    else if (wheelId) parsed.wheelId = wheelId;
+    else if (!parsed.player) parsed.player = arg.replace(/^@/, '');
+  }
+  return parsed;
 }
 
 export interface ChatConnection {
@@ -163,30 +187,35 @@ export class TwitchBot extends EventEmitter<{ status: [] }> {
       return;
     }
 
-    if (command === twitch.spinCommand.toLowerCase()) {
-      if (rank >= ROLE_RANK.moderator) {
-        // Moderators pick the player, the number of spins and the wheel, in any order:
-        // !spin @viewer 5 simp
-        const wheels = new Set(this.engine.getConfig().wheels.map((w) => w.id));
-        let target = '';
-        let spins: number | undefined;
-        let wheelId: string | undefined;
-        for (const arg of args) {
-          if (/^\d{1,2}$/.test(arg)) spins = Number(arg);
-          else if (!arg.startsWith('@') && wheels.has(arg)) wheelId = arg;
-          else if (!target) target = arg.replace(/^@/, '');
-        }
-        this.engine.enqueue({ player: target || message.displayName, wheelId, spins, source: 'chat' });
-        return;
-      }
-      if (rank < ROLE_RANK[twitch.spinPermission]) return;
-      if (this.engine.hasQueued(message.displayName)) return;
-      const last = this.cooldowns.get(message.login);
-      const now = this.now();
-      if (last !== undefined && now - last < twitch.spinCooldownSec * 1000) return;
-      this.cooldowns.set(message.login, now);
-      this.engine.enqueue({ player: message.displayName, source: 'chat' });
+    // The spin command plays the active wheel (or the one a moderator names); a wheel's own
+    // command ("!slots") plays that wheel. Both follow the same permission, queue and cooldown.
+    const wheels = this.engine.getConfig().wheels;
+    const isSpin = command === normalizeCommand(twitch.spinCommand);
+    const game = isSpin ? undefined : wheelForCommand(wheels, command);
+    if (!isSpin && !game) return;
+
+    if (rank >= ROLE_RANK.moderator) {
+      // Moderators pick the player, the number of spins and the wheel: !spin @viewer 5 simp
+      const parsed = parseGameArgs(
+        args,
+        wheels.map((w) => w.id),
+      );
+      this.engine.enqueue({
+        player: parsed.player || message.displayName,
+        wheelId: game?.id ?? parsed.wheelId,
+        spins: parsed.spins,
+        source: 'chat',
+      });
+      return;
     }
+    if (rank < ROLE_RANK[twitch.spinPermission]) return;
+    if (this.engine.hasQueued(message.displayName)) return;
+    // One cooldown per viewer for every game command, so switching commands does not skip it.
+    const last = this.cooldowns.get(message.login);
+    const now = this.now();
+    if (last !== undefined && now - last < twitch.spinCooldownSec * 1000) return;
+    this.cooldowns.set(message.login, now);
+    this.engine.enqueue({ player: message.displayName, wheelId: game?.id, source: 'chat' });
   }
 
   private rememberReward(message: ChatMessage): void {
