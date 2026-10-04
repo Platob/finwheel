@@ -212,6 +212,118 @@ describe('money turns', () => {
   });
 });
 
+describe('×N next', () => {
+  // random() = 0 always lands on the first slice still in stock, which scripts the order.
+  const nextWheel = (spinsPerTurn: number, prizes: Record<string, unknown>[]) =>
+    makeConfig({ wheels: [{ id: 'main', name: 'Boost', spinsPerTurn, prizes }] });
+  const next2 = prize('next2', { label: '×2 Next', nextMultiplier: 2, stock: 1 });
+  const seven = prize('seven', { label: '$7', cash: 7 });
+
+  it('arms a boost, shows it on the turn and multiplies the next cash', () => {
+    const engine = new WheelEngine({ config: nextWheel(3, [next2, seven]), random: () => 0 });
+    engine.requestSpin({ player: 'ana', source: 'manual' });
+    expect(engine.snapshot().spin?.turn).toMatchObject({ nextMultiplier: 1 });
+
+    const armed = playOutFollowUp(engine);
+    expect(armed).toMatchObject({
+      label: '×2 Next',
+      money: { before: 0, after: 0, cash: 0, multiplier: 1, boost: 1, nextMultiplier: 2, bust: false },
+      payout: null,
+    });
+    // The boost stays on the turn while the boosted spin runs.
+    expect(engine.snapshot().spin?.turn).toMatchObject({ spinNumber: 2, nextMultiplier: 2 });
+    expect(engine.snapshot().turn).toMatchObject({ nextMultiplier: 2 });
+
+    vi.advanceTimersByTime(engine.snapshot().spin!.durationMs + SETTLE_MS);
+    expect(engine.snapshot().result).toMatchObject({
+      label: '$7',
+      money: { before: 0, after: 14, cash: 7, boost: 2, nextMultiplier: 1 },
+    });
+    expect(engine.snapshot().turn).toMatchObject({ total: 14, nextMultiplier: 1 });
+    vi.advanceTimersByTime(engine.settings.spin.followUpHoldMs);
+
+    const last = playOutFollowUp(engine);
+    expect(last).toMatchObject({ money: { after: 21, boost: 1 }, payout: 21 });
+    expect(engine.getStage()).toBe('total');
+    expect(engine.snapshot().summary).toMatchObject({
+      total: 21,
+      log: [
+        { chip: '×2 next', before: 0, after: 0 },
+        { chip: '$14', before: 0, after: 14 },
+        { chip: '$7', before: 14, after: 21 },
+      ],
+    });
+  });
+
+  it('stacks boosts across slices', () => {
+    const next3 = prize('next3', { label: '×3 Next', nextMultiplier: 3, stock: 1 });
+    const engine = new WheelEngine({ config: nextWheel(3, [next2, next3, seven]), random: () => 0 });
+    engine.requestSpin({ player: 'ana', source: 'manual' });
+    expect(playOutFollowUp(engine).money).toMatchObject({ boost: 1, nextMultiplier: 2 });
+    expect(playOutFollowUp(engine).money).toMatchObject({ boost: 1, nextMultiplier: 6 });
+    expect(engine.snapshot().spin?.turn).toMatchObject({ nextMultiplier: 6 });
+    expect(playOutFollowUp(engine)).toMatchObject({ money: { after: 42, boost: 6 }, payout: 42 });
+  });
+
+  it('loses a boost left when the game ends', () => {
+    const engine = new WheelEngine({ config: nextWheel(1, [next2, seven]), random: () => 0 });
+    engine.requestSpin({ player: 'ana', source: 'manual' });
+    vi.advanceTimersByTime(engine.snapshot().spin!.durationMs + SETTLE_MS);
+    expect(engine.snapshot().result).toMatchObject({
+      money: { after: 0, boost: 1, nextMultiplier: 1 },
+      payout: 0,
+    });
+    expect(engine.snapshot().turn).toMatchObject({ nextMultiplier: 1 });
+  });
+
+  it('treats a wheel of boosts and free spins as a money wheel', () => {
+    const free = prize('free', { label: 'Free Spin', extraSpins: 1 });
+    const engine = new WheelEngine({ config: nextWheel(1, [next2, free]), random: () => 0 });
+    expect(engine.snapshot().display.money).toBe(true);
+    engine.requestSpin({ player: 'ana', source: 'manual' });
+    expect(engine.snapshot().spin?.turn).toMatchObject({ money: true });
+  });
+});
+
+describe('wheel views', () => {
+  it('tag money slices with their main effect', () => {
+    const config = makeConfig({
+      wheels: [
+        {
+          id: 'main',
+          name: 'Mixed',
+          prizes: [
+            prize('cash', { cash: 5 }),
+            prize('total', { multiplier: 2 }),
+            prize('half', { multiplier: 0.5 }),
+            prize('next', { nextMultiplier: 2 }),
+            prize('free', { extraSpins: 1 }),
+            prize('bust', { bust: true }),
+            prize('shoutout'),
+          ],
+        },
+      ],
+    });
+    const engine = new WheelEngine({ config });
+    const segments = engine.snapshot().display.segments;
+    expect(segments.map((s) => s.effect)).toEqual([
+      'cash',
+      'total',
+      'total',
+      'next',
+      'spins',
+      undefined,
+      undefined,
+    ]);
+    expect(segments[3]).toMatchObject({ amount: '×2', caption: 'next' });
+    expect('effect' in segments[6]!).toBe(false);
+
+    engine.addEntrant({ login: 'ana', displayName: 'Ana' });
+    engine.openRaffle();
+    expect(engine.snapshot().display.segments[0]).not.toHaveProperty('effect');
+  });
+});
+
 describe('raffle', () => {
   it('only accepts chat entries while open and ignores duplicates', () => {
     const engine = new WheelEngine({

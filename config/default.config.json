@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "activeWheelId": "lucky-dollars",
+  "activeWheelId": "broke-boi",
   "wheels": [
     {
-      "id": "lucky-dollars",
-      "name": "Lucky Dollars",
+      "id": "broke-boi",
+      "name": "Broke Boi Wheel",
       "subtitle": "$2 – $10 · no risk",
       "sizing": "weight",
       "spinsPerTurn": 3,
@@ -124,11 +124,12 @@
         },
         {
           "id": "x2b",
-          "label": "×2 Total",
+          "label": "×2 Next",
           "weight": 1,
           "tier": "epic",
-          "multiplier": 2,
-          "description": "Your total is multiplied by 2"
+          "multiplier": 1,
+          "nextMultiplier": 2,
+          "description": "Your next spin pays double"
         },
         {
           "id": "c8",
@@ -141,8 +142,8 @@
       ]
     },
     {
-      "id": "high-roller",
-      "name": "High Roller",
+      "id": "simp",
+      "name": "Simp Wheel",
       "subtitle": "$10 – $50 · bankrupt risk",
       "sizing": "weight",
       "spinsPerTurn": 3,
@@ -279,8 +280,8 @@
       ]
     },
     {
-      "id": "diamond-table",
-      "name": "Diamond Table",
+      "id": "whale",
+      "name": "Whale Wheel",
       "subtitle": "$50 – $500 · high risk",
       "sizing": "weight",
       "spinsPerTurn": 2,
@@ -424,11 +425,11 @@
       "spinsPerTurn": 1,
       "prizes": [
         {
-          "id": "lucky",
-          "label": "Lucky Dollars",
+          "id": "broke-boi",
+          "label": "Broke Boi",
           "weight": 36,
           "tier": "common",
-          "chainWheelId": "lucky-dollars",
+          "chainWheelId": "broke-boi",
           "description": "Safe spins worth $2 – $10"
         },
         {
@@ -440,11 +441,11 @@
           "description": "Spin for a real prize"
         },
         {
-          "id": "high",
-          "label": "High Roller",
+          "id": "simp",
+          "label": "Simp",
           "weight": 18,
           "tier": "rare",
-          "chainWheelId": "high-roller",
+          "chainWheelId": "simp",
           "description": "Bigger stakes, real risk"
         },
         {
@@ -456,11 +457,11 @@
           "description": "You choose the streamer's fate"
         },
         {
-          "id": "diamond",
-          "label": "Diamond Table",
+          "id": "whale",
+          "label": "Whale",
           "weight": 8,
           "tier": "legendary",
-          "chainWheelId": "diamond-table",
+          "chainWheelId": "whale",
           "description": "Whales only: $50 – $500"
         }
       ]

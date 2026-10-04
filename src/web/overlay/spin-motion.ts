@@ -17,10 +17,13 @@ export function spinOffset(t: number, total: number): number {
   return -PULL_BACK + (total + PULL_BACK) * easeOutQuart(u);
 }
 
+/** What a spin needs to be animated. */
+export type SpinPath = Pick<SpinView, 'fromRotation' | 'toRotation' | 'durationMs'>;
+
 /** Plays a server-decided spin locally; the landing rotation is fixed by the server. */
-export class SpinMotion {
+export class SpinMotion<S extends SpinPath = SpinView> {
   constructor(
-    readonly spin: SpinView,
+    readonly spin: S,
     /** performance.now() timestamp corresponding to the server start time. */
     readonly startedAt: number,
   ) {}

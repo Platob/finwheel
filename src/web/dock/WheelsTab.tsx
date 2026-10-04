@@ -20,6 +20,7 @@ function newPrize(): Prize {
     tier: 'common',
     cash: 0,
     multiplier: 1,
+    nextMultiplier: 1,
     extraSpins: 0,
     bust: false,
   };
@@ -52,13 +53,15 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
     update((all) =>
       all.push(
         copy
-          ? { ...structuredClone(copy), id, name: `${copy.name} copy`.slice(0, 40) }
+          ? // A copy keeps the game but not the chat command, which must stay unique.
+            { ...structuredClone(copy), id, name: `${copy.name} copy`.slice(0, 40), command: undefined }
           : {
               id,
               name: 'New wheel',
               subtitle: '',
               sizing: 'weight',
               spinsPerTurn: 1,
+              game: 'wheel',
               prizes: [newPrize(), newPrize()],
             },
       ),
@@ -258,27 +261,32 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
                     onChange={(v) => editPrize(i, (p) => (p.multiplier = v ?? 1))}
                   />
                 </Field>
-                <Field label="+ Spins">
+                <Field label="× Next spin">
                   <NumberInput
-                    value={prize.extraSpins}
-                    min={0}
-                    max={10}
-                    onChange={(v) => editPrize(i, (p) => (p.extraSpins = Math.round(v ?? 0)))}
+                    value={prize.nextMultiplier}
+                    min={1}
+                    max={100}
+                    step={0.5}
+                    onChange={(v) => editPrize(i, (p) => (p.nextMultiplier = v ?? 1))}
                   />
                 </Field>
               </div>
               <details class="prize-more">
-                <summary>
-                  {prize.bust ? 'Bankrupt' : 'More'}
-                  {prize.chainWheelId &&
-                    ` · then ${wheels.find((w) => w.id === prize.chainWheelId)?.name ?? '?'}`}
-                </summary>
+                <summary>{prizeSummary(prize, wheels)}</summary>
                 <div class="grid">
                   <Field label="Description" wide>
                     <input
                       value={prize.description}
                       maxLength={140}
                       onInput={(e) => editPrize(i, (p) => (p.description = e.currentTarget.value))}
+                    />
+                  </Field>
+                  <Field label="+ Spins">
+                    <NumberInput
+                      value={prize.extraSpins}
+                      min={0}
+                      max={10}
+                      onChange={(v) => editPrize(i, (p) => (p.extraSpins = Math.round(v ?? 0)))}
                     />
                   </Field>
                   <Field label="Then spin">
@@ -333,6 +341,15 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
       </div>
     </>
   );
+}
+
+/** Title of a slice's "More" section: what its hidden settings do ("More · +1 spin · then Vault"). */
+function prizeSummary(prize: Prize, wheels: Wheel[]): string {
+  if (prize.bust) return 'Bankrupt';
+  const parts = ['More'];
+  if (prize.extraSpins > 0) parts.push(`+${prize.extraSpins} spin${prize.extraSpins > 1 ? 's' : ''}`);
+  if (prize.chainWheelId) parts.push(`then ${wheels.find((w) => w.id === prize.chainWheelId)?.name ?? '?'}`);
+  return parts.join(' · ');
 }
 
 function swap<T>(list: T[], a: number, b: number) {

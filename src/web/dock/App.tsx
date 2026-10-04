@@ -79,7 +79,7 @@ export function App() {
               <SettingsTab
                 state={state}
                 send={send}
-                notify={(message) => notify({ level: 'success', message })}
+                notify={(message, level = 'success') => notify({ level, message })}
               />
             )}
           </>

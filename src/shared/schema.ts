@@ -1,7 +1,16 @@
 import { z } from 'zod';
-import { ROLES, SIZINGS, TIERS } from './constants.js';
+import {
+  GAMES,
+  MAX_HUB_PHOTOS,
+  MAX_PHOTO_URL,
+  PHOTO_URL,
+  ROLES,
+  SIZINGS,
+  THEMES,
+  TIERS,
+} from './constants.js';
 
-export { ROLES, SIZINGS, TIERS };
+export { GAMES, ROLES, SIZINGS, THEMES, TIERS };
 
 const idSchema = z
   .string()
@@ -11,6 +20,12 @@ const idSchema = z
   .regex(/^[a-z0-9][a-z0-9_-]*$/i, 'Use only letters, numbers, "-" and "_"');
 
 const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i, 'Use a #rrggbb color');
+
+const photoUrl = z
+  .string()
+  .trim()
+  .max(MAX_PHOTO_URL)
+  .regex(PHOTO_URL, 'Use an uploaded photo or an http(s):// image URL');
 
 export const PrizeSchema = z.object({
   id: idSchema,
@@ -22,12 +37,16 @@ export const PrizeSchema = z.object({
   stock: z.number().int().min(0).nullable().default(null),
   tier: z.enum(TIERS).default('common'),
   color: hexColor.optional(),
+  /** Emoji or short symbol shown by the mini-games (slot reels, claw capsules, gifts). */
+  icon: z.string().trim().min(1).max(8).optional(),
   /** When won, immediately spin this other wheel for the same player (category → prize flow). */
   chainWheelId: idSchema.optional(),
   /** Cash added to the player's running total for this turn. */
   cash: z.number().min(0).max(1_000_000).default(0),
   /** Multiplies the running total after adding `cash` (2 = double, 0.5 = lose half). */
   multiplier: z.number().min(0).max(1000).default(1),
+  /** Multiplies the cash won on the player's next spin (2 = "×2 next"). Stacks with another boost. */
+  nextMultiplier: z.number().min(1).max(100).default(1),
   /** Free re-spins of the same wheel added to the turn. */
   extraSpins: z.number().int().min(0).max(10).default(0),
   /** Bankrupt: the running total is lost and the turn ends immediately. */
@@ -42,6 +61,15 @@ export const WheelSchema = z.object({
   sizing: z.enum(SIZINGS).default('weight'),
   /** Default number of spins in a game; the dock or chat can choose another count per game. */
   spinsPerTurn: z.number().int().min(1).max(20).default(1),
+  /** How the prizes are played on the overlay: a wheel or a mini-game (slots, claw, plinko, gifts). */
+  game: z.enum(GAMES).default('wheel'),
+  /** Chat command that starts a game on this wheel (e.g. "!slots"), on top of the spin command. */
+  command: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^![a-z0-9_-]{1,24}$/, 'Use "!" followed by letters, numbers, "-" or "_"')
+    .optional(),
   prizes: z.array(PrizeSchema).max(64),
 });
 
@@ -77,6 +105,12 @@ export const SettingsSchema = z.object({
       sound: z.boolean().default(true),
       volume: z.number().min(0).max(1).default(0.6),
       showRaffleBadge: z.boolean().default(true),
+      /** Look of the wheel and its signs. */
+      theme: z.enum(THEMES).default('glam'),
+      /** Photos shown in the centre of the wheel (uploaded `/media/…` files, site paths or http(s) URLs). */
+      hubPhotos: z.array(photoUrl).max(MAX_HUB_PHOTOS).default([]),
+      /** Seconds each centre photo stays up when there are several. */
+      hubPhotoSeconds: z.number().int().min(2).max(120).default(8),
     })
     .prefault({}),
   raffle: z
@@ -121,7 +155,19 @@ export const ConfigSchema = z
   })
   .superRefine((cfg, ctx) => {
     const wheelIds = new Set<string>();
+    const commands = new Map<string, string>();
     cfg.wheels.forEach((wheel, w) => {
+      if (wheel.command) {
+        const taken = commands.get(wheel.command);
+        if (taken || wheel.command === cfg.settings.twitch.spinCommand.toLowerCase()) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['wheels', w, 'command'],
+            message: `"${wheel.command}" is already used by ${taken ? `wheel "${taken}"` : 'the spin command'}`,
+          });
+        }
+        commands.set(wheel.command, wheel.id);
+      }
       if (wheelIds.has(wheel.id)) {
         ctx.addIssue({
           code: 'custom',
@@ -208,6 +254,8 @@ export const CommandSchema = z.discriminatedUnion('type', [
 export type Tier = (typeof TIERS)[number];
 export type Role = (typeof ROLES)[number];
 export type Sizing = (typeof SIZINGS)[number];
+export type ThemeId = (typeof THEMES)[number];
+export type GameType = (typeof GAMES)[number];
 export type Prize = z.output<typeof PrizeSchema>;
 export type Wheel = z.output<typeof WheelSchema>;
 export type Settings = z.output<typeof SettingsSchema>;

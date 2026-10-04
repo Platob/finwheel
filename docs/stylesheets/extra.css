@@ -1,0 +1,27 @@
+/* Glam pink & gold, matching the default overlay look. */
+:root,
+[data-md-color-scheme='default'] {
+  --md-primary-fg-color: #c42d7c;
+  --md-primary-fg-color--light: #e8559f;
+  --md-primary-fg-color--dark: #8e1d5a;
+  --md-accent-fg-color: #d9a520;
+}
+
+[data-md-color-scheme='slate'] {
+  --md-primary-fg-color: #7d1d60;
+  --md-primary-fg-color--light: #a8337f;
+  --md-primary-fg-color--dark: #5e1249;
+  --md-accent-fg-color: #f4c656;
+  --md-default-bg-color: #1d0c18;
+}
+
+.md-typeset img {
+  border-radius: 0.4rem;
+}
+
+.md-typeset .grid-shots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: center;
+}

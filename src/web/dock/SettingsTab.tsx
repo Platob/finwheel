@@ -1,10 +1,13 @@
-import { ROLES } from '../../shared/constants';
-import type { Settings } from '../../shared/schema';
-import type { AppState } from '../../shared/types';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { MAX_HUB_PHOTOS, MAX_PHOTO_URL, PHOTO_URL, ROLES, THEMES } from '../../shared/constants';
+import type { Settings, ThemeId } from '../../shared/schema';
+import type { AppState, Notice } from '../../shared/types';
 import { pageToken } from '../common/socket';
 import { useDraft } from './draft';
 import type { Send } from './server';
 import { Field, NumberInput, Section, Toggle } from './ui';
+
+type Notify = (message: string, level?: Notice['level']) => void;
 
 const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
   everyone: 'Everyone',
@@ -14,15 +17,15 @@ const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
   broadcaster: 'Broadcaster only',
 };
 
-export function SettingsTab({
-  state,
-  send,
-  notify,
-}: {
-  state: AppState;
-  send: Send;
-  notify: (m: string) => void;
-}) {
+const THEME_LABELS: Record<ThemeId, { name: string; label: string }> = {
+  glam: { name: 'Glam', label: 'Glam — pink & gold' },
+  casino: { name: 'Casino', label: 'Casino — emerald & gold' },
+};
+
+/** Longest side of uploaded centre photos, in pixels. */
+const PHOTO_MAX_PX = 1280;
+
+export function SettingsTab({ state, send, notify }: { state: AppState; send: Send; notify: Notify }) {
   const { config, twitch } = state;
   const { draft, dirty, stale, update, reset, saved } = useDraft(config.settings);
   const set = (mutate: (settings: Settings) => void) => update(mutate);
@@ -39,8 +42,13 @@ export function SettingsTab({
 
   const origin = location.origin;
   const token = pageToken();
+  const otherTheme = THEMES.find((theme) => theme !== config.settings.overlay.theme) ?? 'casino';
   const links = [
     { label: 'Overlay (Browser Source)', url: `${origin}/overlay/` },
+    {
+      label: `Overlay, always the ${THEME_LABELS[otherTheme].name} look`,
+      url: `${origin}/overlay/?theme=${otherTheme}`,
+    },
     { label: 'Control dock', url: `${origin}/dock/${token ? `?token=${encodeURIComponent(token)}` : ''}` },
   ];
 
@@ -272,6 +280,18 @@ export function SettingsTab({
       </Section>
 
       <Section title="Overlay">
+        <Field label="Look">
+          <select
+            value={draft.overlay.theme}
+            onChange={(e) => set((s) => (s.overlay.theme = e.currentTarget.value as ThemeId))}
+          >
+            {THEMES.map((theme) => (
+              <option key={theme} value={theme}>
+                {THEME_LABELS[theme].label}
+              </option>
+            ))}
+          </select>
+        </Field>
         <Toggle
           label="Hide the wheel when idle"
           checked={draft.overlay.autoHide}
@@ -317,6 +337,26 @@ export function SettingsTab({
             </select>
           </Field>
         </div>
+
+        <h3>Centre photos</h3>
+        <HubPhotos
+          photos={draft.overlay.hubPhotos}
+          update={(mutate) => set((s) => mutate(s.overlay.hubPhotos))}
+          notify={notify}
+        />
+        {draft.overlay.hubPhotos.length > 1 && (
+          <div class="grid">
+            <Field label="Seconds per photo">
+              <NumberInput
+                value={draft.overlay.hubPhotoSeconds}
+                min={2}
+                max={120}
+                onChange={(v) => set((s) => (s.overlay.hubPhotoSeconds = Math.round(v ?? 8)))}
+              />
+            </Field>
+          </div>
+        )}
+
         <div class="row row--stretch">
           <button class="btn" onClick={() => send({ type: state.visible ? 'overlay.hide' : 'overlay.show' })}>
             {state.visible ? 'Hide overlay now' : 'Show overlay'}
@@ -364,4 +404,184 @@ export function SettingsTab({
       </div>
     </>
   );
+}
+
+/** Centre photo list: thumbnails in display order, uploads and links. */
+function HubPhotos({
+  photos,
+  update,
+  notify,
+}: {
+  photos: string[];
+  update: (mutate: (photos: string[]) => void) => void;
+  notify: Notify;
+}) {
+  const [progress, setProgress] = useState<string | null>(null);
+  const [link, setLink] = useState('');
+  const room = MAX_HUB_PHOTOS - photos.length;
+  // Uploads that finish after Settings is closed would land in a discarded draft.
+  const mounted = useRef(true);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
+
+  const add = (url: string) =>
+    update((list) => {
+      if (!list.includes(url) && list.length < MAX_HUB_PHOTOS) list.push(url);
+    });
+
+  const upload = async (files: File[]) => {
+    const batch = files.slice(0, Math.max(0, room));
+    if (batch.length < files.length) {
+      notify(`Only ${MAX_HUB_PHOTOS} photos fit: ${files.length - batch.length} skipped`, 'error');
+    }
+    const stopped = () => notify('Upload stopped: Settings was closed before saving', 'error');
+    // `photos` does not follow the adds of this loop, so duplicates are tracked here.
+    const seen = new Set(photos);
+    let added = 0;
+    for (const [i, file] of batch.entries()) {
+      if (!mounted.current) return stopped();
+      setProgress(batch.length > 1 ? `Uploading ${i + 1}/${batch.length}…` : 'Uploading…');
+      try {
+        const url = await uploadPhoto(await shrinkPhoto(file));
+        if (!mounted.current) return stopped();
+        if (seen.has(url)) {
+          notify(`${file.name}: already in the list`, 'error');
+          continue;
+        }
+        seen.add(url);
+        add(url);
+        added++;
+      } catch (error) {
+        notify(`${file.name}: ${(error as Error).message}`, 'error');
+      }
+    }
+    setProgress(null);
+    if (added) notify(`${added === 1 ? 'Photo' : `${added} photos`} uploaded: press Save settings`);
+  };
+
+  const addLink = () => {
+    if (room <= 0) return notify(`Only ${MAX_HUB_PHOTOS} photos fit`, 'error');
+    const url = link.trim();
+    if (url.length > MAX_PHOTO_URL || !PHOTO_URL.test(url)) {
+      return notify('Use an http(s):// image URL or a /path on this server', 'error');
+    }
+    if (photos.includes(url)) return notify('That photo is already in the list', 'error');
+    add(url);
+    setLink('');
+  };
+
+  return (
+    <>
+      <p class="hint">
+        Shown in the middle of the wheel, cropped to a circle. Several photos take turns, in this order.
+      </p>
+      <ul class="photos">
+        {photos.map((url, i) => (
+          <li class="photo" key={`${i}-${url}`} title={url}>
+            <img
+              src={url}
+              alt=""
+              loading="lazy"
+              onError={(e) => e.currentTarget.parentElement?.classList.add('is-broken')}
+            />
+            <span class="photo-index">{i + 1}</span>
+            <span class="photo-actions">
+              <button
+                class="icon-btn"
+                title="Show earlier"
+                disabled={i === 0}
+                onClick={() => update((list) => list.splice(i - 1, 0, ...list.splice(i, 1)))}
+              >
+                ‹
+              </button>
+              <button class="icon-btn" title="Remove" onClick={() => update((list) => list.splice(i, 1))}>
+                ×
+              </button>
+            </span>
+          </li>
+        ))}
+        {room > 0 && (
+          <li>
+            <label class={`photo photo--add${progress ? ' is-busy' : ''}`}>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={progress !== null}
+                onChange={(e) => {
+                  const files = [...(e.currentTarget.files ?? [])];
+                  e.currentTarget.value = '';
+                  void upload(files);
+                }}
+              />
+              <span>{progress ?? 'Add photos…'}</span>
+            </label>
+          </li>
+        )}
+      </ul>
+      <div class="row">
+        <input
+          class="grow"
+          value={link}
+          placeholder="…or an image URL (https://…)"
+          onInput={(e) => setLink(e.currentTarget.value)}
+          onKeyDown={(e) => e.key === 'Enter' && addLink()}
+        />
+        <button class="btn btn--ghost btn--small" disabled={!link.trim() || room <= 0} onClick={addLink}>
+          Add by URL
+        </button>
+      </div>
+      <p class="small muted">
+        {photos.length}/{MAX_HUB_PHOTOS} photos · uploads are resized to {PHOTO_MAX_PX} px
+      </p>
+    </>
+  );
+}
+
+/** Downscales a picked image (upright, longest side ≤ PHOTO_MAX_PX): JPEG, or PNG when it is transparent. */
+async function shrinkPhoto(file: File): Promise<Blob> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch((error: unknown) =>
+      // Chromium < 112 (OBS 30's CEF 103) rejects 'from-image' but already honours EXIF orientation.
+      error instanceof TypeError ? createImageBitmap(file) : Promise.reject(error),
+    );
+  } catch {
+    throw new Error('not an image this browser can open');
+  }
+  const scale = Math.min(1, PHOTO_MAX_PX / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const ctx = canvas.getContext('2d')!;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const type = file.type !== 'image/jpeg' && hasTransparency(ctx) ? 'image/png' : 'image/jpeg';
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('could not resize it'))), type, 0.9),
+  );
+}
+
+function hasTransparency(ctx: CanvasRenderingContext2D): boolean {
+  const { data } = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+  for (let i = 3; i < data.length; i += 4) if (data[i]! < 255) return true;
+  return false;
+}
+
+/** Sends an image to the server and returns its /media/… URL. */
+async function uploadPhoto(image: Blob): Promise<string> {
+  const token = pageToken();
+  const res = await fetch('/api/media', {
+    method: 'POST',
+    headers: { 'Content-Type': image.type, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: image,
+  });
+  const reply = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
+  if (!res.ok || !reply?.url) throw new Error(reply?.error ?? `upload failed (HTTP ${res.status})`);
+  return reply.url;
 }

@@ -1,29 +1,41 @@
 import '@fontsource/cinzel/700.css';
 import '@fontsource/cinzel/900.css';
+import '@fontsource/fredoka/500.css';
+import '@fontsource/fredoka/600.css';
+import '@fontsource/fredoka/700.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/700.css';
+import '@fontsource/lilita-one/400.css';
 import '../common/theme.css';
 import './overlay.css';
+import './overlay-glam.css';
 
 import { formatMoney } from '../../shared/rules';
 import { TIER_STYLES } from '../../shared/tiers';
-import type { AppState, SpinResult, TurnSummary, WheelView } from '../../shared/types';
+import type { ThemeId } from '../../shared/schema';
+import type { AppState, SpinResult, TurnSummary, TurnView, WheelView } from '../../shared/types';
 import { connect } from '../common/socket';
 import { SoundBoard } from './audio';
 import { Celebration } from './fx';
-import { SpinMotion } from './spin-motion';
-import { DISPLAY_FONT, UI_FONT } from './wheel-face';
-import { WheelScene } from './wheel-scene';
+import { GameDirector } from './games/director';
+import { getTheme, parseTheme } from './themes';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
 if (params.has('preview')) document.body.classList.add('preview');
+/** `?backdrop` paints the theme's backdrop behind the wheel, for scenes without one. */
+if (params.has('backdrop')) document.body.classList.add('backdrop');
 const muted = params.get('mute') === '1';
+/** `?theme=casino` forces a look on one browser source, whatever the dock says. */
+const forcedTheme = parseTheme(params.get('theme'));
 
 const stage = $<HTMLElement>('stage');
-const scene = new WheelScene($<HTMLCanvasElement>('wheel'));
-const fx = new Celebration($<HTMLCanvasElement>('fx'));
 const sound = new SoundBoard();
+/** The wheel or mini-game on screen (one canvas, one stage per game type). */
+const games = new GameDirector($<HTMLCanvasElement>('wheel'), getTheme(forcedTheme ?? 'glam'), sound);
+const fx = new Celebration($<HTMLCanvasElement>('fx'));
+document.body.dataset.theme = games.themeId;
+fx.setTheme(games.themeId);
 
 const ui = {
   plaqueTitle: $('plaque-title'),
@@ -47,19 +59,34 @@ const ui = {
   raffle: $('raffle'),
   raffleKeyword: $('raffle-keyword'),
   raffleCount: $('raffle-count'),
+  headline: $('headline-title'),
+  headlineText: $('headline-text'),
+  headlineStatus: $('headline-status'),
+  stats: $('stats'),
+  statSpins: $('stat-spins'),
+  statSpinsLabel: $('stat-spins-label'),
+  statTotal: $('stat-total'),
+  statTotalBox: $('stat-total-box'),
+  statNext: $('stat-next'),
+  statNextBox: $('stat-next-box'),
 };
 
 let state: AppState | null = null;
-let motion: SpinMotion | null = null;
+/** The play being animated: which spin, and when it started on the local clock. */
+let playing: { id: string; startedAt: number; durationMs: number } | null = null;
+let landed = true;
 let revealedResultId: string | null = null;
 let pendingReveal: SpinResult | null = null;
 let bankShown = 0;
 let bankTarget = 0;
+let nextShown = 1;
+/** The stat row shows how the next game starts (no turn yet), not the bank. */
+let statsPreview = false;
 let shownSummaryId: string | null = null;
 let totalCount: { target: number; start: number } | null = null;
 const TOTAL_COUNT_MS = 1400;
 
-scene.onTick = (speed) => sound.tick(speed);
+games.onTick = (speed) => sound.tick(speed);
 
 // ── Layout ────────────────────────────────────────────────────────────────
 
@@ -67,16 +94,71 @@ function layout() {
   const size = Math.min(window.innerWidth, window.innerHeight);
   const dpr = window.devicePixelRatio || 1;
   stage.style.setProperty('--u', `${size / 100}px`);
-  scene.resize(size, dpr);
+  games.resize(size, dpr);
   fx.resize(window.innerWidth, window.innerHeight, dpr);
+  fitHeadline();
 }
 window.addEventListener('resize', layout);
 layout();
-void Promise.all([
-  document.fonts.load(`700 40px ${DISPLAY_FONT}`),
-  document.fonts.load(`900 40px ${DISPLAY_FONT}`),
-  document.fonts.load(`700 20px ${UI_FONT}`),
-]).then(() => scene.refresh());
+
+/** Redraws canvas text once the theme's web fonts are ready. */
+function loadFonts() {
+  const theme = games.themeId;
+  void Promise.all(getTheme(theme).fonts.map((font) => document.fonts.load(font))).then(() => {
+    if (games.themeId === theme) games.refresh();
+  });
+}
+loadFonts();
+document.fonts.addEventListener('loadingdone', () => fitHeadline());
+
+function applyTheme(id: ThemeId) {
+  if (id === games.themeId) return;
+  games.setTheme(getTheme(id));
+  fx.setTheme(id);
+  document.body.dataset.theme = id;
+  loadFonts();
+  fitHeadline();
+}
+
+// ── Centre photos ────────────────────────────────────────────────────────
+
+let photoKey = '';
+/** A photo still loading after this long is skipped, so one dead link never holds back the others. */
+const PHOTO_TIMEOUT_MS = 10_000;
+
+/** Loads the centre photos; ones that fail or take too long to load are skipped (with a console warning). */
+function applyPhotos(urls: readonly string[], seconds: number) {
+  const key = JSON.stringify([urls, seconds]);
+  if (key === photoKey) return;
+  photoKey = key;
+  void Promise.all(
+    urls.map(async (url) => {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('timeout')), PHOTO_TIMEOUT_MS);
+      });
+      try {
+        await Promise.race([img.decode(), timeout]);
+        return img;
+      } catch {
+        img.src = ''; // Cancels a request that is still hanging.
+        console.warn(`[finwheel] Could not load centre photo ${url}`);
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
+    }),
+  ).then((images) => {
+    if (key !== photoKey) return;
+    games.setPhotos(
+      images.filter((img): img is HTMLImageElement => img !== null),
+      seconds,
+    );
+  });
+}
 
 // ── State sync ───────────────────────────────────────────────────────────
 
@@ -92,29 +174,31 @@ function applyState(next: AppState) {
   state = next;
   const { overlay } = next.config.settings;
   sound.configure(overlay.sound && !muted, overlay.volume);
+  applyTheme(forcedTheme ?? overlay.theme);
+  applyPhotos(overlay.hubPhotos, overlay.hubPhotoSeconds);
   const now = performance.now();
 
-  if (next.spin && next.spin.id !== motion?.spin.id) {
+  if (next.spin && next.spin.id !== playing?.id) {
     const elapsed = Math.max(0, next.serverTime - next.spin.startedAt);
-    motion = new SpinMotion(next.spin, now - elapsed);
-    scene.setWheel(next.spin.wheel, now);
-    scene.setRotation(next.spin.fromRotation, now);
-    scene.setHighlight(null);
+    playing = { id: next.spin.id, startedAt: now - elapsed, durationMs: next.spin.durationMs };
+    games.play(next.spin, playing.startedAt, now);
+    games.setHighlight(null);
+    landed = games.update(now);
     hideResult();
     if (elapsed < 500) sound.whoosh();
   } else if (!next.spin) {
-    motion = null;
+    playing = null;
+    landed = true;
     pendingReveal = null;
-    scene.setWheel(next.display, now);
-    scene.setRotation(next.rotation, now);
-    scene.setHighlight(null);
+    games.show(next.display, next.rotation, now);
+    games.setHighlight(null);
     hideResult();
   }
 
   if (next.stage === 'result' && next.result && next.result.id !== revealedResultId) {
     revealedResultId = next.result.id;
-    if (motion && !motion.done(now)) pendingReveal = next.result;
-    else reveal(next.result, now - (motion?.startedAt ?? now) > (motion?.spin.durationMs ?? 0) + 3000);
+    if (playing && !landed) pendingReveal = next.result;
+    else reveal(next.result, now - (playing?.startedAt ?? now) > (playing?.durationMs ?? 0) + 3000);
   }
 
   if (next.stage === 'total' && next.summary && next.summary.id !== shownSummaryId) {
@@ -131,7 +215,7 @@ function applyState(next: AppState) {
 /** Final screen of a multi-spin game: the total counts up, with every spin listed. */
 function showTotal(summary: TurnSummary) {
   hideResult();
-  scene.setHighlight(null);
+  games.setHighlight(null);
   ui.total.dataset.bust = String(summary.bust);
   ui.totalEyebrow.textContent = summary.bust
     ? 'Bankrupt'
@@ -161,9 +245,9 @@ function showTotal(summary: TurnSummary) {
   }
   setTimeout(() => {
     sound.win('legendary');
-    scene.celebrate(3500);
+    games.celebrate(3500);
     const rect = stage.getBoundingClientRect();
-    const center = scene.center;
+    const center = games.center;
     fx.burst(rect.left + center.x, rect.top + center.y - center.radius * 0.4, 'legendary', rect.width / 1080);
   }, TOTAL_COUNT_MS * 0.85);
 }
@@ -176,22 +260,45 @@ function updateChrome(s: AppState) {
   const wheel = currentWheel();
   const { overlay } = s.config.settings;
   const player = s.spin?.player;
-  ui.plaqueTitle.textContent = wheel?.name ?? '';
-  ui.plaqueSub.textContent = player ? `Spinning for ${player}` : (wheel?.subtitle ?? '');
+  const name = wheel?.name ?? '';
+  const status = player ? `Spinning for ${player}` : (wheel?.subtitle ?? '');
+  ui.plaqueTitle.textContent = name;
+  ui.plaqueSub.textContent = status;
+  ui.headlineStatus.textContent = status;
+  if (ui.headlineText.textContent !== name) {
+    setSticker(ui.headlineText, name);
+    ui.headline.dataset.text = name;
+    fitHeadline();
+  }
 
-  // Bank badge for money turns
+  // Bank badge and stat row for money turns; before one starts, the stat row shows its first spin.
   const turn = s.turn;
   const showBank = Boolean(turn?.money);
+  // A sold-out wheel ("No prizes left") cannot start a game, so it previews none.
+  const playable = s.display.money && s.display.segments.length > 0;
+  const spinsAhead = !turn && s.stage === 'idle' && playable ? gameSpins(s, s.display.key) : 0;
+  statsPreview = spinsAhead > 0;
   ui.bank.classList.toggle('is-visible', showBank);
+  ui.stats.classList.toggle('is-visible', showBank || statsPreview);
+  if (statsPreview) {
+    setSpinsLeft(spinsAhead);
+    setSticker(ui.statTotal, money(0));
+    setSticker(ui.statNext, '×1');
+    ui.statNextBox.classList.remove('is-armed');
+    nextShown = 1;
+  }
   if (turn && showBank) {
     ui.bankEyebrow.textContent = `Bank · Spin ${turn.spinNumber} of ${turn.spinsPlanned}`;
     // A late reveal updates the bank itself, so the total never spoils the result.
-    if (!pendingReveal) setBank(turn.total, s.stage !== 'spinning');
+    if (!pendingReveal) {
+      setBank(turn.total, s.stage !== 'spinning');
+      setTurnStats(turn);
+    }
   }
 
   const raffle = s.raffle;
   ui.raffle.classList.toggle('is-visible', raffle.open && overlay.showRaffleBadge);
-  ui.raffleKeyword.textContent = raffle.keyword;
+  setSticker(ui.raffleKeyword, raffle.keyword);
   ui.raffleCount.textContent = `· ${raffle.entrants.length}`;
 
   const idle = s.stage === 'idle';
@@ -200,53 +307,110 @@ function updateChrome(s: AppState) {
   stage.classList.toggle('is-hidden', overlay.autoHide && idle && !hasRaffleWheel);
 }
 
+/** Spins in a game of this wheel when no count is given. */
+function gameSpins(s: AppState, wheelId: string): number {
+  return s.config.wheels.find((w) => w.id === wheelId)?.spinsPerTurn ?? 1;
+}
+
 function setBank(value: number, animate = true) {
   if (value === bankTarget) return;
   bankTarget = value;
   if (!animate) bankShown = value;
-  ui.bank.classList.remove('is-bump');
-  if (animate) {
-    void ui.bank.offsetWidth;
-    ui.bank.classList.add('is-bump');
-  }
+  bump(ui.bank, animate);
+  bump(ui.statTotalBox, animate);
+}
+
+/** Restarts the `is-bump` animation of an element (or just clears it). */
+function bump(el: HTMLElement, animate = true) {
+  el.classList.remove('is-bump');
+  if (!animate) return;
+  void el.offsetWidth;
+  el.classList.add('is-bump');
+}
+
+/** Text drawn with an outline: the outline layer repeats the text from `data-text`. */
+function setSticker(el: HTMLElement, text: string) {
+  if (el.textContent === text && el.dataset.text === text) return;
+  el.textContent = text;
+  el.dataset.text = text;
+}
+
+/** The "N spins left" stat box ("1 spin left" in the singular). */
+function setSpinsLeft(count: number) {
+  setSticker(ui.statSpins, String(count));
+  ui.statSpinsLabel.textContent = count === 1 ? 'spin left' : 'spins left';
+}
+
+/** Spins left and the "×N next spin" boost of the stat row; the boost pops when it is armed. */
+function setTurnStats(turn: TurnView) {
+  const next = turn.nextMultiplier;
+  setSpinsLeft(Math.max(0, turn.spinsPlanned - turn.spinNumber));
+  setSticker(ui.statNext, `×${next}`);
+  ui.statNextBox.classList.toggle('is-armed', next > 1);
+  if (next !== nextShown) bump(ui.statNextBox, next > 1);
+  nextShown = next;
+}
+
+/** Shrinks the headline so long wheel names stay on one line. */
+function fitHeadline() {
+  const el = ui.headline;
+  el.style.removeProperty('--fit');
+  const max = stage.clientWidth * 0.9;
+  const width = el.offsetWidth;
+  if (width > max) el.style.setProperty('--fit', (max / width).toFixed(3));
 }
 
 function reveal(result: SpinResult, quiet = false) {
   const spin = state?.spin;
   const index = spin ? spin.segmentIndex : -1;
   const bust = Boolean(result.money?.bust);
-  scene.setHighlight(index >= 0 ? index : null, result.tier, bust);
+  games.setHighlight(index >= 0 ? index : null, result.tier, bust);
 
   const isRaffle = result.kind === 'raffle';
+  const boost = armedBoost(result);
+  // A "×N next" slice on the last spin of a game: its boost has no spin left to multiply.
+  const unusedBoost = result.payout !== null && !bust && spin?.wheel.segments[index]?.effect === 'next';
   ui.result.dataset.tier = result.tier;
   ui.result.dataset.bust = String(bust);
+  ui.result.dataset.boost = String(boost > 1);
   ui.resultEyebrow.textContent = bust
     ? 'Bankrupt'
     : isRaffle
       ? 'Raffle winner'
       : result.payout !== null
         ? 'Cash out'
-        : result.player
-          ? 'Winner'
-          : 'The wheel has spoken';
+        : boost > 1
+          ? 'Boost!'
+          : result.player
+            ? 'Winner'
+            : 'The wheel has spoken';
   ui.resultPlayer.textContent = !isRaffle && result.player ? result.player : '';
-  ui.resultPrize.textContent = result.label;
+  setSticker(ui.resultPrize, result.label);
   const emptyMultiplier = result.money && !bust && result.money.multiplier > 1 && result.money.before === 0;
   ui.resultDesc.textContent = isRaffle
     ? 'Congratulations!'
-    : emptyMultiplier
-      ? 'Nothing in the bank to multiply yet'
-      : bust && result.money?.before === 0
-        ? 'Lucky break — nothing in the bank to lose'
-        : result.description;
+    : boost > 1
+      ? result.description || `Your next spin pays ×${boost}`
+      : unusedBoost
+        ? 'No spins left for the boost'
+        : emptyMultiplier
+          ? 'Nothing in the bank to multiply yet'
+          : bust && result.money?.before === 0
+            ? 'Lucky break — nothing in the bank to lose'
+            : result.description;
 
   ui.resultBank.innerHTML = '';
   if (result.money && !(bust && result.money.before === 0)) {
     const { before, after, multiplier } = result.money;
     const label = bust ? 'Lost' : result.payout !== null ? 'Final total' : 'Total';
     const amount = bust ? before : after;
+    const boosted = result.money.boost > 1 ? ` · ×${result.money.boost} boost` : '';
     const delta =
-      bust || before === after ? '' : multiplier !== 1 ? `×${multiplier}` : `+${money(after - before)}`;
+      bust || before === after
+        ? ''
+        : multiplier !== 1
+          ? `×${multiplier}`
+          : `+${money(after - before)}${boosted}`;
     ui.resultBank.innerHTML = `<span>${label}</span><strong>${money(amount)}</strong>${delta ? `<em>${delta}</em>` : ''}`;
   }
 
@@ -263,6 +427,8 @@ function reveal(result: SpinResult, quiet = false) {
   if (result.money) {
     setBank(result.money.after);
     ui.bank.classList.toggle('is-bust', bust);
+    ui.statTotalBox.classList.toggle('is-bust', bust);
+    if (state?.turn?.money) setTurnStats(state.turn);
   }
   if (quiet) return;
 
@@ -271,24 +437,34 @@ function reveal(result: SpinResult, quiet = false) {
     return;
   }
   sound.win(result.tier);
-  scene.celebrate(TIER_STYLES[result.tier].celebration * 1400);
+  games.celebrate(TIER_STYLES[result.tier].celebration * 1400);
   const rect = stage.getBoundingClientRect();
-  const center = scene.center;
+  const center = games.center;
   const scale = rect.width / 1080;
   fx.burst(rect.left + center.x, rect.top + center.y - center.radius * 0.55, result.tier, scale);
+}
+
+/**
+ * Boost this result armed for the next spin (1 = none). Only "×N next" slices leave one armed (any
+ * other result uses it up), and none is left when the game ends.
+ */
+function armedBoost(result: SpinResult): number {
+  const m = result.money;
+  return m && !m.bust && result.payout === null ? m.nextMultiplier : 1;
 }
 
 function hideResult() {
   ui.result.classList.remove('is-visible');
   ui.bank.classList.remove('is-bust');
+  ui.statTotalBox.classList.remove('is-bust');
 }
 
 // ── Frame loop ───────────────────────────────────────────────────────────
 
 function frame(now: number) {
-  if (motion) {
-    scene.setRotation(motion.rotationAt(now), now, !motion.done(now));
-    if (pendingReveal && motion.done(now)) {
+  if (playing) {
+    landed = games.update(now);
+    if (pendingReveal && landed) {
       const result = pendingReveal;
       pendingReveal = null;
       reveal(result);
@@ -302,7 +478,9 @@ function frame(now: number) {
         : Math.max(bankTarget, bankShown - step);
     if (Math.abs(bankTarget - bankShown) < 0.01) bankShown = bankTarget;
   }
-  ui.bankValue.textContent = money(Number.isInteger(bankTarget) ? Math.round(bankShown) : bankShown);
+  const bank = money(Number.isInteger(bankTarget) ? Math.round(bankShown) : bankShown);
+  ui.bankValue.textContent = bank;
+  if (!statsPreview) setSticker(ui.statTotal, bank);
   if (totalCount) {
     const t = Math.min(1, (now - totalCount.start) / TOTAL_COUNT_MS);
     const eased = 1 - (1 - t) ** 3;
@@ -313,10 +491,10 @@ function frame(now: number) {
         : Number.isInteger(totalCount.target)
           ? Math.round(value)
           : Math.round(value * 100) / 100;
-    ui.totalAmount.textContent = money(shown);
+    setSticker(ui.totalAmount, money(shown));
   }
 
-  if (!stage.classList.contains('is-off')) scene.draw(now);
+  if (!stage.classList.contains('is-off')) games.draw(now);
   fx.draw(now);
   requestAnimationFrame(frame);
 }

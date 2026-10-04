@@ -1,9 +1,14 @@
-import type { Config, Sizing, Tier } from './schema.js';
+import type { Config, GameType, Sizing, Tier } from './schema.js';
 
 export type WheelKind = 'prize' | 'raffle';
 /** `total` shows the final amount once every spin of a multi-spin money game has run. */
 export type Stage = 'idle' | 'spinning' | 'result' | 'total';
 export type SpinSource = 'manual' | 'chat' | 'reward' | 'bits' | 'raffle' | 'chain' | 'api';
+/**
+ * Main effect of a money slice, used to style it: `cash` adds money, `total` multiplies the
+ * running total, `next` boosts the next spin, `spins` grants free spins.
+ */
+export type SlotEffect = 'cash' | 'total' | 'next' | 'spins';
 
 /** One slice of the wheel as it is drawn. */
 export interface Segment {
@@ -18,6 +23,10 @@ export interface Segment {
   /** Money slices print a large amount with a small caption instead of the label. */
   amount?: string;
   caption?: string;
+  /** Main effect of a money slice (absent on bankrupt, prize and raffle slices). */
+  effect?: SlotEffect;
+  /** Emoji or short symbol for the mini-games. */
+  icon?: string;
 }
 
 /** A frozen, render-ready snapshot of a wheel (prize wheel or raffle entrants). */
@@ -27,6 +36,8 @@ export interface WheelView {
   name: string;
   subtitle: string;
   sizing: Sizing;
+  /** How the prizes are played: the wheel or a mini-game. */
+  game: GameType;
   /** Whether the wheel has cash / multiplier / bankrupt slices. */
   money: boolean;
   segments: Segment[];
@@ -41,6 +52,8 @@ export interface TurnView {
   /** Spins planned so far, including the current one; grows with extra spins. */
   spinsPlanned: number;
   money: boolean;
+  /** Multiplier waiting for the cash of the next spin (1 = none), from "×N next" slices. */
+  nextMultiplier: number;
 }
 
 /** One spin of a game, as listed on the final total screen. */
@@ -64,9 +77,14 @@ export interface TurnSummary {
 export interface MoneyChange {
   before: number;
   after: number;
+  /** Cash printed on the slice, before any boost. */
   cash: number;
   multiplier: number;
   bust: boolean;
+  /** Boost from an earlier "×N next" slice applied to this spin's cash (1 = none). */
+  boost: number;
+  /** Boost armed for the following spin after this result (1 = none). */
+  nextMultiplier: number;
 }
 
 export interface SpinView {
@@ -80,6 +98,8 @@ export interface SpinView {
   fromRotation: number;
   toRotation: number;
   durationMs: number;
+  /** Random 32-bit seed for the mini-games' animation details, so every overlay plays it the same. */
+  seed: number;
   /** Server timestamp (ms) at which the spin started. */
   startedAt: number;
   turn: TurnView | null;

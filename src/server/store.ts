@@ -14,6 +14,7 @@ const SessionSchema = z.object({
         id: z.string(),
         player: z.string(),
         wheelId: z.string(),
+        spins: z.number().int().min(1).optional(),
         source: z.enum(SOURCES),
         addedAt: z.number(),
       }),
@@ -41,6 +42,8 @@ const SessionSchema = z.object({
             cash: z.number(),
             multiplier: z.number(),
             bust: z.boolean(),
+            boost: z.number().default(1),
+            nextMultiplier: z.number().default(1),
           })
           .nullable()
           .default(null),

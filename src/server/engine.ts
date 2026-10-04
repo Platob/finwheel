@@ -1,15 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
+import { GAME_PACE } from '../shared/constants.js';
 import { computeArcs, landingRotation, mod1 } from '../shared/geometry.js';
-import {
-  applyPrize,
-  availablePrizes,
-  formatMoney,
-  isMoneyWheel,
-  slotText,
-  startTurn,
-  type Turn,
-} from '../shared/rules.js';
+import { applyPrize, formatMoney, logChip, startTurn, type Turn } from '../shared/rules.js';
 import type { Config } from '../shared/schema.js';
 import {
   RAFFLE_WHEEL_KEY,
@@ -26,6 +19,7 @@ import {
   type TurnView,
   type WheelView,
 } from '../shared/types.js';
+import { prizeWheelView } from '../shared/wheel-view.js';
 import { secureRandom, weightedIndex } from './random.js';
 
 /** Pause between the wheel stopping and the result being revealed. */
@@ -314,25 +308,7 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
 
   private wheelView(wheelId: string): WheelView | null {
     const wheel = this.config.wheels.find((w) => w.id === wheelId);
-    if (!wheel) return null;
-    return {
-      key: wheel.id,
-      kind: 'prize',
-      name: wheel.name,
-      subtitle: wheel.subtitle,
-      sizing: wheel.sizing,
-      money: isMoneyWheel(wheel),
-      segments: availablePrizes(wheel).map((p) => ({
-        id: p.id,
-        label: p.label,
-        description: p.description,
-        weight: p.weight,
-        tier: p.tier,
-        ...(p.color ? { color: p.color } : {}),
-        ...(p.bust ? { bust: true } : {}),
-        ...slotText(p, this.settings.currency),
-      })),
-    };
+    return wheel ? prizeWheelView(wheel, this.settings.currency) : null;
   }
 
   private raffleView(): WheelView {
@@ -344,6 +320,7 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
       name: 'Grand Raffle',
       subtitle: `${entrants.length} ${entrants.length === 1 ? 'entrant' : 'entrants'} · ${tickets} tickets`,
       sizing: 'weight',
+      game: 'wheel',
       money: false,
       segments: entrants.map((e) => ({
         id: e.login,
@@ -365,6 +342,7 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
         name: 'FinWheel',
         subtitle: '',
         sizing: 'equal',
+        game: 'wheel',
         money: false,
         segments: [],
       }
@@ -392,6 +370,7 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
       spinNumber: Math.max(1, current),
       spinsPlanned: Math.max(1, current) + turn.pending.length,
       money: turn.money,
+      nextMultiplier: turn.boost,
     };
   }
 
@@ -433,7 +412,8 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
       segmentIndex,
       fromRotation,
       toRotation: landingRotation(fromRotation, arc, landing, turns),
-      durationMs: Math.round(durationMs * (0.92 + this.random() * 0.16)),
+      durationMs: Math.round(durationMs * GAME_PACE[view.game] * (0.92 + this.random() * 0.16)),
+      seed: Math.floor(this.random() * 2 ** 32),
       startedAt: Date.now(),
       turn: this.turnView(),
     };
@@ -473,7 +453,7 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
         this.turn.log = [
           ...this.turn.log,
           {
-            chip: slotText(prize, this.settings.currency)?.amount ?? prize.label,
+            chip: logChip(prize, this.settings.currency, outcome.boost),
             wheelName: spin.wheel.name,
             before: outcome.before,
             after: outcome.after,
@@ -488,6 +468,8 @@ export class WheelEngine extends EventEmitter<EngineEvents> {
             cash: prize.cash,
             multiplier: prize.multiplier,
             bust: prize.bust,
+            boost: outcome.boost,
+            nextMultiplier: this.turn.boost,
           };
           if (outcome.ended) payout = outcome.after;
         }
