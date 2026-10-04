@@ -4,9 +4,9 @@ A classy casino-style prize wheel for OBS and Twitch: money games, prize categor
 rendered as a transparent browser-source overlay and driven from an OBS dock.
 
 <p align="center">
-  <img src="docs/overlay-wheel.jpg" width="320" alt="Lucky Dollars wheel with amounts on every slice" />
-  <img src="docs/overlay-total.jpg" width="320" alt="Total winnings screen after a 3-spin game" />
-  <img src="docs/dock.jpg" width="156" alt="Control dock" />
+  <img src="docs/images/overlay-wheel.jpg" width="320" alt="Lucky Dollars wheel with amounts on every slice" />
+  <img src="docs/images/overlay-total.jpg" width="320" alt="Total winnings screen after a 3-spin game" />
+  <img src="docs/images/dock.jpg" width="156" alt="Control dock" />
 </p>
 
 ## Features
@@ -72,14 +72,14 @@ curl -X POST http://localhost:4747/api/command -H 'Content-Type: application/jso
 Invoke-RestMethod -Method Post http://localhost:4747/api/command -ContentType 'application/json' -Body '{"type":"spin","player":"VelvetViper","spins":3}'
 ```
 
-<p align="center"><img src="docs/overlay-result.jpg" width="420" alt="Overlay during a 3-spin game: $5 won, bank at $8 (preview background)" /></p>
+<p align="center"><img src="docs/images/overlay-result.jpg" width="420" alt="Overlay during a 3-spin game: $5 won, bank at $8 (preview background)" /></p>
 
 ### 3. Add the control dock
 
 In OBS: **Docks → Custom Browser Docks…**, Dock Name `FinWheel`, URL `http://localhost:4747/dock/`, **Apply**.
 It opens floating: drag it into place. To play: pick a wheel, type a player, set the spins, press **Spin**.
 
-<p align="center"><img src="docs/setup-dock-play.jpg" width="380" alt="Dock Play tab: wheel chips, player name, spins stepper and Spin button" /></p>
+<p align="center"><img src="docs/images/setup-dock-play.jpg" width="380" alt="Dock Play tab: wheel chips, player name, spins stepper and Spin button" /></p>
 
 ### 4. Connect Twitch chat
 
@@ -98,8 +98,8 @@ Wheel ids (shown in the dock's **Wheels** tab): `lucky-dollars`, `high-roller`, 
 `prize-vault`, `dares`. To let viewers type `!spin`, set **Who can spin** to _Everyone_ or _Subscribers_.
 
 <p align="center">
-  <img src="docs/setup-dock-twitch.jpg" width="380" alt="Dock Twitch chat settings, connected" />
-  <img src="docs/overlay-raffle.jpg" width="420" alt="Raffle wheel filled with entrants and the !join badge" />
+  <img src="docs/images/setup-dock-twitch.jpg" width="380" alt="Dock Twitch chat settings, connected" />
+  <img src="docs/images/overlay-raffle.jpg" width="420" alt="Raffle wheel filled with entrants and the !join badge" />
 </p>
 
 ### 5. Announce results in chat (optional)
