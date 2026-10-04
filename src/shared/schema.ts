@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ROLES, SIZINGS, THEMES, TIERS } from './constants.js';
+import { MAX_HUB_PHOTOS, MAX_PHOTO_URL, PHOTO_URL, ROLES, SIZINGS, THEMES, TIERS } from './constants.js';
 
 export { ROLES, SIZINGS, THEMES, TIERS };
 
@@ -15,9 +15,8 @@ const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i, 'Use a #rrggbb color');
 const photoUrl = z
   .string()
   .trim()
-  .max(500)
-  // http(s) URLs or paths on this server ("/media/…" uploads); "//host" is not a path.
-  .regex(/^(https?:\/\/|\/(?!\/))\S+$/i, 'Use an uploaded photo or an http(s):// image URL');
+  .max(MAX_PHOTO_URL)
+  .regex(PHOTO_URL, 'Use an uploaded photo or an http(s):// image URL');
 
 export const PrizeSchema = z.object({
   id: idSchema,
@@ -89,7 +88,7 @@ export const SettingsSchema = z.object({
       /** Look of the wheel and its signs. */
       theme: z.enum(THEMES).default('glam'),
       /** Photos shown in the centre of the wheel (uploaded `/media/…` files, site paths or http(s) URLs). */
-      hubPhotos: z.array(photoUrl).max(12).default([]),
+      hubPhotos: z.array(photoUrl).max(MAX_HUB_PHOTOS).default([]),
       /** Seconds each centre photo stays up when there are several. */
       hubPhotoSeconds: z.number().int().min(2).max(120).default(8),
     })

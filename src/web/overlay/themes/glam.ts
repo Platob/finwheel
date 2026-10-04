@@ -556,22 +556,16 @@ function buildHub({ radius, view, photo }: HubOptions): HTMLCanvasElement {
   ctx.fillStyle = goldFill(ctx, -r, r);
   ctx.fill();
 
-  if (photo) {
-    ctx.beginPath();
-    ctx.arc(0, 0, disc, 0, TAU);
-    ctx.fillStyle = GLAM.plum;
-    ctx.fill();
-    drawPhotoCover(ctx, photo, disc);
-  } else {
-    const pink = ctx.createRadialGradient(0, -disc * 0.35, disc * 0.05, 0, 0, disc);
-    pink.addColorStop(0, '#f9b8d8');
-    pink.addColorStop(0.6, GLAM.hotPink);
-    pink.addColorStop(1, '#c42f7c');
-    ctx.beginPath();
-    ctx.arc(0, 0, disc, 0, TAU);
-    ctx.fillStyle = pink;
-    ctx.fill();
-  }
+  // Pink disc, also behind the see-through parts of a photo
+  const pink = ctx.createRadialGradient(0, -disc * 0.35, disc * 0.05, 0, 0, disc);
+  pink.addColorStop(0, '#f9b8d8');
+  pink.addColorStop(0.6, GLAM.hotPink);
+  pink.addColorStop(1, '#c42f7c');
+  ctx.beginPath();
+  ctx.arc(0, 0, disc, 0, TAU);
+  ctx.fillStyle = pink;
+  ctx.fill();
+  if (photo) drawPhotoCover(ctx, photo, disc);
   ctx.beginPath();
   ctx.arc(0, 0, disc, 0, TAU);
   ctx.strokeStyle = 'rgba(140, 80, 10, 0.6)';
@@ -689,8 +683,10 @@ export const glam: WheelTheme = {
   buildLights,
   drawPointer,
   highlight: (tier, bust) => {
-    if (bust) return { glow: '#ff4fa3', fill: '255, 70, 160', dim: 0.42 };
+    // A plum shade keeps the other slices pink and gold instead of turning them grey and olive.
+    const shade = '58, 12, 44';
+    if (bust) return { glow: '#ff4fa3', fill: '255, 70, 160', dim: 0.48, shade };
     const precious = tier === 'legendary' || tier === 'jackpot';
-    return { glow: precious ? '#ffd54f' : '#fff1b0', fill: '255, 236, 170', dim: 0.34 };
+    return { glow: precious ? '#ffd54f' : '#fff1b0', fill: '255, 236, 170', dim: 0.4, shade };
   },
 };

@@ -59,7 +59,14 @@ const security = new Security({
   allowedOrigins: (env.FINWHEEL_ALLOWED_ORIGINS ?? '').split(','),
 });
 
-const app = createApp({ engine, twitch: bot, security, webRoot: join(root, 'dist', 'web'), version });
+const app = createApp({
+  engine,
+  twitch: bot,
+  security,
+  webRoot: join(root, 'dist', 'web'),
+  mediaDir: join(dataDir, 'media'),
+  version,
+});
 
 app.server.on('error', (error: NodeJS.ErrnoException) => {
   if (error.code === 'EADDRINUSE') {

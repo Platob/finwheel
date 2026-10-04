@@ -320,8 +320,9 @@ body.backdrop[data-theme='glam'] {
 
 /* ── Result card ───────────────────────────────────────────────────── */
 
+/* Tier accents follow the glam particles: pale gold, pink, lavender, gold. */
 [data-theme='glam'] .result {
-  --accent: var(--g-light);
+  --accent: var(--g-pale);
   top: 61.5%;
   width: calc(var(--u) * 60);
   border-width: calc(var(--u) * 0.4);
@@ -342,7 +343,7 @@ body.backdrop[data-theme='glam'] {
 }
 
 [data-theme='glam'] .result[data-tier='rare'] {
-  --accent: #8fd8ff;
+  --accent: var(--g-light);
 }
 [data-theme='glam'] .result[data-tier='epic'] {
   --accent: #d2a8ff;

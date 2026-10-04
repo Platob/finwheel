@@ -118,6 +118,7 @@ export function PlayTab({ state, send }: { state: AppState; send: Send }) {
               <strong>{money(turn.total)}</strong>
               <span class="muted">
                 spin {turn.spinNumber} of {turn.spinsPlanned}
+                {turn.nextMultiplier > 1 && ` · ×${turn.nextMultiplier} next`}
               </span>
             </div>
           )}

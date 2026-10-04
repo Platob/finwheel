@@ -14,6 +14,7 @@ const SessionSchema = z.object({
         id: z.string(),
         player: z.string(),
         wheelId: z.string(),
+        spins: z.number().int().min(1).optional(),
         source: z.enum(SOURCES),
         addedAt: z.number(),
       }),

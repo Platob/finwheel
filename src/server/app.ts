@@ -1,10 +1,11 @@
-import { existsSync } from 'node:fs';
+import { createReadStream, existsSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { AppState, Notice, ServerMessage, SpinSource, TwitchStatus } from '../shared/types.js';
 import { runCommand } from './commands.js';
 import { EngineError, type WheelEngine } from './engine.js';
+import { MAX_MEDIA_BYTES, MediaError, MediaStore, mediaTypeOf } from './media.js';
 import type { Security } from './security.js';
 import { serveStatic } from './static.js';
 
@@ -15,6 +16,7 @@ const HEARTBEAT_MS = 30_000;
 export interface TwitchStatusSource {
   getStatus(): TwitchStatus;
   on(event: 'status', listener: () => void): unknown;
+  off(event: 'status', listener: () => void): unknown;
 }
 
 export interface AppOptions {
@@ -23,6 +25,8 @@ export interface AppOptions {
   security: Security;
   /** Folder with the built overlay and dock (dist/web). */
   webRoot: string;
+  /** Folder for uploaded images (<data>/media). */
+  mediaDir: string;
   version: string;
 }
 
@@ -37,7 +41,8 @@ export interface App {
   close(): Promise<void>;
 }
 
-export function createApp({ engine, twitch, security, webRoot, version }: AppOptions): App {
+export function createApp({ engine, twitch, security, webRoot, mediaDir, version }: AppOptions): App {
+  const media = new MediaStore(mediaDir);
   const clients = new Set<Client>();
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_BODY_BYTES });
   let broadcastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -111,9 +116,11 @@ export function createApp({ engine, twitch, security, webRoot, version }: AppOpt
       }
       if (!security.hasControl(req, url))
         return sendJson(res, 401, { ok: false, error: 'Missing or bad token' });
+      const raw = await readBody(req, MAX_BODY_BYTES);
+      if (!raw) return sendJson(res, 413, { ok: false, error: 'Request body too large' });
       let body: unknown;
       try {
-        body = JSON.parse(await readBody(req));
+        body = JSON.parse(raw.toString('utf8') || '{}');
       } catch (error) {
         return sendJson(res, 400, { ok: false, error: (error as Error).message });
       }
@@ -123,10 +130,40 @@ export function createApp({ engine, twitch, security, webRoot, version }: AppOpt
         return sendJson(res, 400, { ok: false, error: (error as Error).message });
       }
     }
+    if (pathname === '/api/media') {
+      if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'Use POST' });
+      if (!security.hasControl(req, url))
+        return sendJson(res, 401, { ok: false, error: 'Missing or bad token' });
+      const type = mediaTypeOf(req.headers['content-type']);
+      if (!type) return sendJson(res, 415, { ok: false, error: 'Upload a JPEG, PNG, WebP or GIF image' });
+      const data = await readBody(req, MAX_MEDIA_BYTES);
+      if (!data) return sendJson(res, 413, { ok: false, error: 'Images are limited to 8 MB' });
+      try {
+        return sendJson(res, 200, { ok: true, url: `/media/${await media.save(type, data)}` });
+      } catch (error) {
+        if (error instanceof MediaError) return sendJson(res, 415, { ok: false, error: error.message });
+        throw error;
+      }
+    }
     if (pathname.startsWith('/api/')) return sendJson(res, 404, { ok: false, error: 'Not found' });
 
     if (req.method !== 'GET' && req.method !== 'HEAD')
       return sendJson(res, 405, { ok: false, error: 'Use GET' });
+    if (pathname.startsWith('/media/')) {
+      const file = await media.find(pathname.slice('/media/'.length));
+      if (!file) return sendJson(res, 404, { ok: false, error: 'Not found' });
+      res.writeHead(200, {
+        'Content-Type': file.type,
+        'Content-Length': file.size,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'X-Content-Type-Options': 'nosniff',
+      });
+      if (req.method === 'HEAD') return res.end();
+      const stream = createReadStream(file.path);
+      stream.on('error', () => res.destroy());
+      stream.pipe(res);
+      return;
+    }
     if (pathname === '/') {
       res.writeHead(302, { Location: `/dock/${url.search}` });
       return res.end();
@@ -206,6 +243,7 @@ export function createApp({ engine, twitch, security, webRoot, version }: AppOpt
         if (broadcastTimer) clearTimeout(broadcastTimer);
         engine.off('change', scheduleBroadcast);
         engine.off('notice', notifyControllers);
+        twitch.off('status', scheduleBroadcast);
         for (const client of clients) client.socket.terminate();
         wss.close();
         server.close(() => resolve());
@@ -224,20 +262,21 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(json);
 }
 
-function readBody(req: IncomingMessage): Promise<string> {
+/** Reads a body of at most `limit` bytes; resolves null when it is larger (the rest is drained). */
+function readBody(req: IncomingMessage, limit: number): Promise<Buffer | null> {
+  if (Number(req.headers['content-length']) > limit) return Promise.resolve(null);
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let size = 0;
     req.on('data', (chunk: Buffer) => {
       size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
-        reject(new Error('Request body too large'));
-        req.destroy();
-        return;
+      if (size > limit) {
+        chunks.length = 0;
+        return resolve(null);
       }
       chunks.push(chunk);
     });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8') || '{}'));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
 }

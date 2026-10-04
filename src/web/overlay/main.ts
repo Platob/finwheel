@@ -13,7 +13,7 @@ import './overlay-glam.css';
 import { formatMoney } from '../../shared/rules';
 import { TIER_STYLES } from '../../shared/tiers';
 import type { ThemeId } from '../../shared/schema';
-import type { AppState, Segment, SpinResult, TurnSummary, TurnView, WheelView } from '../../shared/types';
+import type { AppState, SpinResult, TurnSummary, TurnView, WheelView } from '../../shared/types';
 import { connect } from '../common/socket';
 import { SoundBoard } from './audio';
 import { Celebration } from './fx';
@@ -77,6 +77,8 @@ let pendingReveal: SpinResult | null = null;
 let bankShown = 0;
 let bankTarget = 0;
 let nextShown = 1;
+/** The stat row shows how the next game starts (no turn yet), not the bank. */
+let statsPreview = false;
 let shownSummaryId: string | null = null;
 let totalCount: { target: number; start: number } | null = null;
 const TOTAL_COUNT_MS = 1400;
@@ -257,11 +259,20 @@ function updateChrome(s: AppState) {
     fitHeadline();
   }
 
-  // Bank badge and stat row for money turns
+  // Bank badge and stat row for money turns; before one starts, the stat row shows its first spin.
   const turn = s.turn;
   const showBank = Boolean(turn?.money);
+  const spinsAhead = !turn && s.stage === 'idle' && s.display.money ? gameSpins(s, s.display.key) : 0;
+  statsPreview = spinsAhead > 0;
   ui.bank.classList.toggle('is-visible', showBank);
-  ui.stats.classList.toggle('is-visible', showBank);
+  ui.stats.classList.toggle('is-visible', showBank || statsPreview);
+  if (statsPreview) {
+    setSticker(ui.statSpins, String(spinsAhead));
+    setSticker(ui.statTotal, money(0));
+    setSticker(ui.statNext, '×1');
+    ui.statNextBox.classList.remove('is-armed');
+    nextShown = 1;
+  }
   if (turn && showBank) {
     ui.bankEyebrow.textContent = `Bank · Spin ${turn.spinNumber} of ${turn.spinsPlanned}`;
     // A late reveal updates the bank itself, so the total never spoils the result.
@@ -280,6 +291,11 @@ function updateChrome(s: AppState) {
   const hasRaffleWheel = s.display.kind === 'raffle';
   stage.classList.toggle('is-off', !s.visible);
   stage.classList.toggle('is-hidden', overlay.autoHide && idle && !hasRaffleWheel);
+}
+
+/** Spins in a game of this wheel when no count is given. */
+function gameSpins(s: AppState, wheelId: string): number {
+  return s.config.wheels.find((w) => w.id === wheelId)?.spinsPerTurn ?? 1;
 }
 
 function setBank(value: number, animate = true) {
@@ -331,7 +347,9 @@ function reveal(result: SpinResult, quiet = false) {
   scene.setHighlight(index >= 0 ? index : null, result.tier, bust);
 
   const isRaffle = result.kind === 'raffle';
-  const boost = armedBoost(result, spin?.wheel.segments[index]);
+  const boost = armedBoost(result);
+  // A "×N next" slice on the last spin of a game: its boost has no spin left to multiply.
+  const unusedBoost = result.payout !== null && !bust && spin?.wheel.segments[index]?.effect === 'next';
   ui.result.dataset.tier = result.tier;
   ui.result.dataset.bust = String(bust);
   ui.result.dataset.boost = String(boost > 1);
@@ -353,11 +371,13 @@ function reveal(result: SpinResult, quiet = false) {
     ? 'Congratulations!'
     : boost > 1
       ? result.description || `Your next spin pays ×${boost}`
-      : emptyMultiplier
-        ? 'Nothing in the bank to multiply yet'
-        : bust && result.money?.before === 0
-          ? 'Lucky break — nothing in the bank to lose'
-          : result.description;
+      : unusedBoost
+        ? 'No spins left for the boost'
+        : emptyMultiplier
+          ? 'Nothing in the bank to multiply yet'
+          : bust && result.money?.before === 0
+            ? 'Lucky break — nothing in the bank to lose'
+            : result.description;
 
   ui.resultBank.innerHTML = '';
   if (result.money && !(bust && result.money.before === 0)) {
@@ -405,13 +425,12 @@ function reveal(result: SpinResult, quiet = false) {
 }
 
 /**
- * Boost this result armed for the next spin (1 = none): a "×N next" slice without cash, on a turn
- * that goes on. A boost carried over from an earlier spin does not count.
+ * Boost this result armed for the next spin (1 = none). Only "×N next" slices leave one armed (any
+ * other result uses it up), and none is left when the game ends.
  */
-function armedBoost(result: SpinResult, segment: Segment | undefined): number {
+function armedBoost(result: SpinResult): number {
   const m = result.money;
-  if (!m || m.bust || m.cash !== 0 || result.payout !== null) return 1;
-  return !segment || segment.effect === 'next' ? m.nextMultiplier : 1;
+  return m && !m.bust && result.payout === null ? m.nextMultiplier : 1;
 }
 
 function hideResult() {
@@ -441,7 +460,7 @@ function frame(now: number) {
   }
   const bank = money(Number.isInteger(bankTarget) ? Math.round(bankShown) : bankShown);
   ui.bankValue.textContent = bank;
-  setSticker(ui.statTotal, bank);
+  if (!statsPreview) setSticker(ui.statTotal, bank);
   if (totalCount) {
     const t = Math.min(1, (now - totalCount.start) / TOTAL_COUNT_MS);
     const eased = 1 - (1 - t) ** 3;

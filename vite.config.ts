@@ -24,6 +24,7 @@ export default defineConfig({
     proxy: {
       '/ws': { target: serverUrl, ws: true },
       '/api': serverUrl,
+      '/media': serverUrl,
     },
   },
 });

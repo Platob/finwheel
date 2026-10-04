@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
-import { request } from 'node:http';
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { request, type IncomingHttpHeaders } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -30,6 +30,7 @@ afterEach(async () => {
 
 async function start(token: string | null = null) {
   const webRoot = mkdtempSync(join(tmpdir(), 'finwheel-web-'));
+  const mediaDir = join(mkdtempSync(join(tmpdir(), 'finwheel-data-')), 'media');
   mkdirSync(join(webRoot, 'overlay'));
   writeFileSync(join(webRoot, 'overlay', 'index.html'), '<h1>overlay</h1>');
   const config = ConfigSchema.parse({
@@ -42,28 +43,57 @@ async function start(token: string | null = null) {
     twitch,
     security: new Security({ bindHost: '127.0.0.1', token, allowedOrigins: [] }),
     webRoot,
+    mediaDir,
     version: 'test',
   });
   await new Promise<void>((resolve) => app!.server.listen(0, '127.0.0.1', resolve));
-  return { engine, port: (app.server.address() as AddressInfo).port };
+  return { engine, mediaDir, port: (app.server.address() as AddressInfo).port };
+}
+
+interface Reply {
+  status: number;
+  headers: IncomingHttpHeaders;
+  body: string;
+  raw: Buffer;
 }
 
 function call(
   port: number,
   path: string,
-  options: { method?: string; headers?: Record<string, string>; body?: string } = {},
+  options: {
+    method?: string;
+    headers?: Record<string, string>;
+    /** Sent as is, or as consecutive chunks (chunked encoding) when given an array. */
+    body?: string | Buffer | Buffer[];
+  } = {},
 ) {
-  return new Promise<{ status: number; body: string }>((resolve, reject) => {
+  return new Promise<Reply>((resolve, reject) => {
     const req = request(
-      { host: '127.0.0.1', port, path, method: options.method ?? 'GET', headers: options.headers },
+      {
+        host: '127.0.0.1',
+        port,
+        path,
+        method: options.method ?? 'GET',
+        headers: options.headers,
+        agent: false,
+      },
       (res) => {
-        let body = '';
-        res.on('data', (chunk) => (body += chunk));
-        res.on('end', () => resolve({ status: res.statusCode ?? 0, body }));
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => {
+          const raw = Buffer.concat(chunks);
+          resolve({ status: res.statusCode ?? 0, headers: res.headers, body: raw.toString('utf8'), raw });
+          req.destroy();
+        });
       },
     );
     req.on('error', reject);
-    req.end(options.body);
+    if (Array.isArray(options.body)) {
+      for (const chunk of options.body) req.write(chunk);
+      req.end();
+    } else {
+      req.end(options.body);
+    }
   });
 }
 
@@ -141,6 +171,105 @@ describe('HTTP API', () => {
   it('does not serve files outside the web root', async () => {
     const { port } = await start();
     expect((await call(port, '/..%2f..%2fetc%2fpasswd')).status).toBe(404);
+  });
+});
+
+describe('media uploads', () => {
+  const png = Buffer.concat([Buffer.from('\x89PNG\r\n\x1a\n\0\0\0\rIHDR', 'latin1'), Buffer.alloc(64, 7)]);
+  const jpeg = Buffer.concat([Buffer.from('\xff\xd8\xff\xe0\0\x10JFIF\0', 'latin1'), Buffer.alloc(64, 9)]);
+  const upload = (
+    port: number,
+    type: string,
+    body: Buffer | Buffer[],
+    headers: Record<string, string> = {},
+  ) => call(port, '/api/media', { method: 'POST', headers: { 'Content-Type': type, ...headers }, body });
+
+  it('stores an image and serves it back with safe headers', async () => {
+    const { port, mediaDir } = await start();
+    const res = await upload(port, 'image/png', png);
+    expect(res.status).toBe(200);
+    const { ok, url } = JSON.parse(res.body) as { ok: boolean; url: string };
+    expect(ok).toBe(true);
+    expect(url).toMatch(/^\/media\/[0-9a-f]{24}\.png$/);
+    expect(JSON.parse((await upload(port, 'image/png', png)).body).url).toBe(url);
+    expect(readdirSync(mediaDir)).toHaveLength(1);
+
+    const got = await call(port, url);
+    expect(got.status).toBe(200);
+    expect(got.raw).toEqual(png);
+    expect(got.headers).toMatchObject({
+      'content-type': 'image/png',
+      'content-length': String(png.length),
+      'x-content-type-options': 'nosniff',
+      'cache-control': 'public, max-age=31536000, immutable',
+    });
+    const head = await call(port, url, { method: 'HEAD' });
+    expect(head.status).toBe(200);
+    expect(head.raw.length).toBe(0);
+    expect((await call(port, url, { method: 'DELETE' })).status).toBe(405);
+  });
+
+  it('requires the control token', async () => {
+    const { port } = await start('s3cret');
+    expect((await upload(port, 'image/png', png)).status).toBe(401);
+    expect((await upload(port, 'image/png', png, { Authorization: 'Bearer nope' })).status).toBe(401);
+    expect((await upload(port, 'image/png', png, { Authorization: 'Bearer s3cret' })).status).toBe(200);
+    const viaQuery = await call(port, '/api/media?token=s3cret', {
+      method: 'POST',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: jpeg,
+    });
+    expect(viaQuery.status).toBe(200);
+    // Serving needs no token: OBS loads the photos without one.
+    expect((await call(port, JSON.parse(viaQuery.body).url)).status).toBe(200);
+  });
+
+  it('accepts only real images of the declared type', async () => {
+    const { port, mediaDir } = await start();
+    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+    expect((await upload(port, 'image/svg+xml', svg)).status).toBe(415);
+    expect((await upload(port, 'image/png', svg)).status).toBe(415);
+    expect((await upload(port, 'image/png', jpeg)).status).toBe(415);
+    expect((await upload(port, 'text/html', Buffer.from('<h1>hi</h1>'))).status).toBe(415);
+    expect((await upload(port, 'image/gif', Buffer.alloc(0))).status).toBe(415);
+    expect((await call(port, '/api/media')).status).toBe(405);
+    expect(existsSync(mediaDir)).toBe(false);
+  });
+
+  it('refuses images over 8 MB', async () => {
+    const { port } = await start();
+    const declared = await upload(port, 'image/png', Buffer.alloc(0), {
+      'Content-Length': String(8 * 1024 * 1024 + 1),
+    });
+    expect(declared.status).toBe(413);
+    const megabyte = Buffer.alloc(1024 * 1024);
+    const streamed = await upload(port, 'image/png', [png, ...Array<Buffer>(8).fill(megabyte)]);
+    expect(streamed.status).toBe(413);
+    const fits = Buffer.concat([png, Buffer.alloc(8 * 1024 * 1024 - png.length)]);
+    expect((await upload(port, 'image/png', fits)).status).toBe(200);
+  });
+
+  it('serves only stored files', async () => {
+    const { port, mediaDir } = await start();
+    const { url } = JSON.parse((await upload(port, 'image/png', png)).body) as { url: string };
+    writeFileSync(join(mediaDir, 'notes.txt'), 'secret');
+    for (const path of [
+      '/media/notes.txt',
+      '/media/..%2f..%2fetc%2fpasswd',
+      '/media/%2e%2e/notes.txt',
+      `/media/${'0'.repeat(24)}.png`,
+      `${url.toUpperCase().replace('/MEDIA/', '/media/')}`,
+      `${url}/`,
+      '/media/',
+    ]) {
+      expect((await call(port, path)).status, path).toBe(404);
+    }
+  });
+
+  it('applies the host and origin checks', async () => {
+    const { port } = await start();
+    expect((await upload(port, 'image/png', png, { Origin: 'https://evil.example' })).status).toBe(403);
+    expect((await upload(port, 'image/png', png, { Host: 'evil.example' })).status).toBe(403);
   });
 });
 

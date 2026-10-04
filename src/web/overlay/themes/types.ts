@@ -31,6 +31,8 @@ export interface HighlightStyle {
   fill: string;
   /** Opacity of the shade laid over the other slices. */
   dim: number;
+  /** "r, g, b" of that shade (default black). */
+  shade?: string;
 }
 
 /**

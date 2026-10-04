@@ -283,7 +283,7 @@ export class WheelScene {
       ctx.moveTo(rf, 0);
       ctx.arc(0, 0, rf, 0, TAU);
       slicePath(ctx, arc, 0, rf, false);
-      ctx.fillStyle = `rgba(0, 0, 0, ${style.dim * fade})`;
+      ctx.fillStyle = `rgba(${style.shade ?? '0, 0, 0'}, ${style.dim * fade})`;
       ctx.fill('evenodd');
     }
 
