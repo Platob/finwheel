@@ -16,7 +16,8 @@ const photoUrl = z
   .string()
   .trim()
   .max(500)
-  .regex(/^(https?:\/\/|\/media\/)\S+$/i, 'Use an uploaded photo or an http(s):// image URL');
+  // http(s) URLs or paths on this server ("/media/…" uploads); "//host" is not a path.
+  .regex(/^(https?:\/\/|\/(?!\/))\S+$/i, 'Use an uploaded photo or an http(s):// image URL');
 
 export const PrizeSchema = z.object({
   id: idSchema,
@@ -87,7 +88,7 @@ export const SettingsSchema = z.object({
       showRaffleBadge: z.boolean().default(true),
       /** Look of the wheel and its signs. */
       theme: z.enum(THEMES).default('glam'),
-      /** Photos shown in the centre of the wheel (uploaded `/media/…` files or http(s) URLs). */
+      /** Photos shown in the centre of the wheel (uploaded `/media/…` files, site paths or http(s) URLs). */
       hubPhotos: z.array(photoUrl).max(12).default([]),
       /** Seconds each centre photo stays up when there are several. */
       hubPhotoSeconds: z.number().int().min(2).max(120).default(8),
