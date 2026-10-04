@@ -123,6 +123,34 @@ export function withAlpha(color: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${unit(alpha)})`;
 }
 
+/** Relative luminance (WCAG) of a colour, 0 = black, 1 = white. */
+export function luminance(color: string): number {
+  const linear = (c: number) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const [r, g, b] = parseColor(color);
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+}
+
+/**
+ * Colours for sticker lettering (fill and thick outline): the theme's own when the outline stands
+ * out from the fill. Dark lettering with a dark outline (casino's brown-on-gold jackpot) becomes
+ * light lettering outlined in that dark colour; light on light gets a dark outline.
+ */
+export function stickerColors(
+  fill: string,
+  outline: string,
+  light = '#fff7e6',
+  dark = '#1a0612',
+): { fill: string; outline: string } {
+  const a = luminance(fill);
+  const b = luminance(outline);
+  const contrast = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  if (contrast >= 3) return { fill, outline };
+  return a < 0.4 ? { fill: light, outline: fill } : { fill, outline: dark };
+}
+
 // ── Labels ───────────────────────────────────────────────────────────────
 
 /** Width of `text` at font size 1. */

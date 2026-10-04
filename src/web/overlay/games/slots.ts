@@ -13,6 +13,7 @@ import {
   buildKnob,
   buildLever,
   buildLight,
+  buildReelGlow,
   buildSparkle,
   buildSweep,
   bulbPoints,
@@ -36,6 +37,7 @@ import {
   coinFall,
   coinSpill,
   drumPlace,
+  fitLabel,
   LAYOUT,
   leverAngle,
   paylineY,
@@ -45,6 +47,7 @@ import {
   reelScreen,
   REELS,
   reelSpeed,
+  restingPhotoCells,
   restingReels,
   settlePop,
   STRIP_MARGIN,
@@ -53,6 +56,7 @@ import {
   type ReelMotion,
   type SlotsPlay,
 } from './slots-math';
+import { clunk, jingle, leverSound, teaseSound } from './slots-sounds';
 import { playArea, type GameStage, type PlayPlan, type StageContext } from './types';
 
 /** Coins poured into the tray after a win, by tier. */
@@ -61,8 +65,9 @@ const SPILL: Record<Tier, number> = { common: 7, rare: 10, epic: 14, legendary: 
 const SPILL_FADE_MS = 450;
 /** Fewest milliseconds between two reel ticks (≤ 25 per second). */
 const TICK_GAP = 40;
-/** Longest side of the photo used for the premium symbol. */
+/** Longest side of the photos used for the premium symbol, and how many of them take turns. */
 const PHOTO_SIDE = 320;
+const MAX_PHOTOS = 6;
 /** A shine crosses the glass every SWEEP_EVERY ms, taking SWEEP_MS. */
 const SWEEP_EVERY = 6500;
 const SWEEP_MS = 1300;
@@ -70,6 +75,10 @@ const SWEEP_MS = 1300;
 const IDLE_LINES = ['SPIN TO WIN', 'FEELING LUCKY?', 'PAY UP, PUP', 'MORE MORE MORE'] as const;
 const IDLE_LINE_MS = 3500;
 /** Where the trim twinkles (layout units). */
+/** The machine's fixed layout (layout units). */
+const SCREEN = reelScreen();
+const BOXES = reelBoxes();
+const PAYLINE = paylineY();
 const SPARKLES = [
   [-0.95, -0.94],
   [0.66, -0.6],
@@ -116,19 +125,21 @@ export class SlotsStage implements GameStage {
   private knob: HTMLCanvasElement | null = null;
   private lever: LeverSprites | null = null;
   private symbols: SymbolSprites[] = [];
-  private photoSymbol: SymbolSprites | null = null;
+  private photoSymbols: SymbolSprites[] = [];
   private glows = new Map<string, HTMLCanvasElement>();
   private messages = new Map<string, HTMLCanvasElement>();
   private coin: HTMLCanvasElement | null = null;
   private sparkle: HTMLCanvasElement | null = null;
   private light: HTMLCanvasElement | null = null;
   private sweep: HTMLCanvasElement | null = null;
-  private photo: HTMLCanvasElement | null = null;
+  private photos: HTMLCanvasElement[] = [];
+  private hotReel: HTMLCanvasElement | null = null;
 
   private view: WheelView | null = null;
   private signature = '';
   /** Reels at rest (cells −STRIP_MARGIN … +STRIP_MARGIN) when nothing plays. */
   private resting: number[][] = [];
+  private restingPhotos: boolean[][] = [];
   private current: Play | null = null;
   /** Milliseconds into the current play at the last update, and the matching clock time. */
   private elapsed = 0;
@@ -137,6 +148,10 @@ export class SlotsStage implements GameStage {
   private speeds: number[] = [0, 0, 0];
   private lastCells: number[] = [0, 0, 0];
   private lastTick = -Infinity;
+
+  /** Two of a kind are in and the last reel still runs: level 0 → 1 and its pulse (see `measureSuspense`). */
+  private suspense = 0;
+  private suspensePulse = 0;
 
   private highlight: { index: number; tier: Tier; bust: boolean; start: number } | null = null;
   private celebrateUntil = 0;
@@ -151,12 +166,11 @@ export class SlotsStage implements GameStage {
 
   get center(): { x: number; y: number; radius: number } {
     const f = this.frame;
-    const screen = reelScreen();
     const radius = (0.5 * f.u) / this.dpr;
     // The overlay bursts confetti at `y − 0.55 × radius`: right on the payline.
     return {
-      x: px(f, (screen.left + screen.right) / 2) / this.dpr,
-      y: py(f, paylineY()) / this.dpr + radius * 0.55,
+      x: px(f, (SCREEN.left + SCREEN.right) / 2) / this.dpr,
+      y: py(f, PAYLINE) / this.dpr + radius * 0.55,
       radius,
     };
   }
@@ -184,9 +198,8 @@ export class SlotsStage implements GameStage {
   }
 
   setPhotos(photos: readonly HTMLImageElement[]): void {
-    const image = photos[0];
-    this.photo = image ? scaleDown(image) : null;
-    this.buildPhotoSymbol();
+    this.photos = photos.slice(0, MAX_PHOTOS).map(scaleDown);
+    this.buildPhotoSymbols();
   }
 
   show(view: WheelView, rotation: number): void {
@@ -195,6 +208,7 @@ export class SlotsStage implements GameStage {
     if (view.key !== this.view?.key) this.spill = null;
     this.setView(view);
     this.resting = restingReels(view, rotation);
+    this.restingPhotos = restingPhotoCells(view, rotation);
     this.positions = [0, 0, 0];
     this.speeds = [0, 0, 0];
   }
@@ -248,12 +262,14 @@ export class SlotsStage implements GameStage {
     const { ctx, size } = this;
     if (size === 0 || !this.cabinet) return;
     ctx.clearRect(0, 0, size, size);
+    this.measureSuspense(now);
     ctx.drawImage(this.cabinet, 0, 0);
     // The payline runs behind the symbols, so it never hides their lettering.
     this.drawPayline(now);
     this.drawReels(now);
     if (this.glass) ctx.drawImage(this.glass, 0, 0);
     this.drawSweep(now);
+    this.drawSuspense();
     this.drawHighlight(now);
     this.drawBulbs(now);
     this.drawHeaderGlow(now);
@@ -303,13 +319,13 @@ export class SlotsStage implements GameStage {
   /** Sounds of the moments passed in (from, to]: lever, near miss, reel stops, landing. */
   private fireSounds(slots: SlotsPlay, from: number, to: number): void {
     const passed = (at: number) => at > from && at <= to && to - at < 200;
-    if (passed(slots.lever.pullEnd)) this.leverSound();
+    if (passed(slots.lever.pullEnd)) leverSound(this.sound);
     slots.reels.forEach((motion, r) => {
       if (motion.tease && passed(motion.tease.holdEnd))
-        this.teaseSound((motion.peak - motion.tease.holdEnd) / 1000);
-      if (passed(motion.peak)) this.clunk(r === REELS - 1 ? 1 : 0.75);
+        teaseSound(this.sound, (motion.peak - motion.tease.holdEnd) / 1000);
+      if (passed(motion.peak)) clunk(this.sound, r === REELS - 1 ? 1 : 0.75);
     });
-    if (passed(slots.landedAt)) this.jingle();
+    if (passed(slots.landedAt)) jingle(this.sound);
   }
 
   // ── Caches ───────────────────────────────────────────────────────────────
@@ -339,10 +355,17 @@ export class SlotsStage implements GameStage {
     drawCoin(this.coin.getContext('2d')!, this.theme, coinR * 1.4, coinR * 1.4, coinR);
     this.sparkle = buildSparkle(this.theme.palette.trimLight, 0.05 * half);
     this.light = buildLight(this.theme.palette.glow, 0.11 * half);
-    const screen = reelScreen();
-    this.sweep = buildSweep(0.3 * half, (screen.bottom - screen.top) * half);
+    this.sweep = buildSweep(0.3 * half, (SCREEN.bottom - SCREEN.top) * half);
+    const reel = BOXES[REELS - 1]!;
+    this.hotReel = buildReelGlow(
+      this.theme.palette.glow,
+      (reel.right - reel.left) * half,
+      (reel.bottom - reel.top) * half,
+      0.02 * half,
+      0.035 * half,
+    );
     this.buildSymbols();
-    this.buildPhotoSymbol();
+    this.buildPhotoSymbols();
   }
 
   private buildSymbols(): void {
@@ -360,13 +383,16 @@ export class SlotsStage implements GameStage {
     });
   }
 
-  private buildPhotoSymbol(): void {
-    if (this.size === 0 || !this.photo) {
-      this.photoSymbol = null;
+  private buildPhotoSymbols(): void {
+    if (this.size === 0) {
+      this.photoSymbols = [];
       return;
     }
-    const sharp = renderPhotoSymbol(this.theme, this.photo, LAYOUT.symbol * this.frame.u);
-    this.photoSymbol = { sharp, blur: blurSymbol(sharp, LAYOUT.pitch * this.frame.u * 0.7) };
+    const r = LAYOUT.symbol * this.frame.u;
+    this.photoSymbols = this.photos.map((photo) => {
+      const sharp = renderPhotoSymbol(this.theme, photo, r);
+      return { sharp, blur: blurSymbol(sharp, LAYOUT.pitch * this.frame.u * 0.7) };
+    });
   }
 
   private glow(color: string): HTMLCanvasElement {
@@ -407,8 +433,7 @@ export class SlotsStage implements GameStage {
   private drawReels(now: number): void {
     const { ctx, frame: f } = this;
     const view = this.view;
-    const boxes = reelBoxes();
-    const payline = py(f, paylineY());
+    const payline = py(f, PAYLINE);
     if (!view || view.segments.length === 0) {
       this.drawEmpty();
       return;
@@ -419,12 +444,12 @@ export class SlotsStage implements GameStage {
     const pulse = highlighted ? 0.5 + 0.5 * Math.sin((now - this.highlight!.start) / 170) : 0;
     for (let r = 0; r < REELS; r++) {
       const pop = play ? settlePop(play.slots.reels, r, t) : 0;
-      const box = boxes[r]!;
+      const box = BOXES[r]!;
       const x = px(f, (box.left + box.right) / 2);
       const s = play ? this.positions[r]! : 0;
       const speed = play ? this.speeds[r]! : 0;
       const strip = play ? play.slots.strips[r]! : (this.resting[r] ?? []);
-      const photos = play ? play.slots.photos[r]! : null;
+      const photos = play ? play.slots.photos[r]! : this.restingPhotos[r];
       const blur = clamp((speed - 4) / 6, 0, 1);
       ctx.save();
       ctx.beginPath();
@@ -434,18 +459,62 @@ export class SlotsStage implements GameStage {
       for (let k = base - 2; k <= base + 3; k++) {
         const place = drumPlace(s - k);
         if (!place) continue;
-        const index = cellAt(strip, k);
-        const photo = photos?.[k + STRIP_MARGIN] && this.photoSymbol;
-        const sprites = photo ? this.photoSymbol! : this.symbols[index];
+        // Photo cells take the streamer's photos in turn (the same on every overlay).
+        const shots = this.photoSymbols.length;
+        const sprites =
+          photos?.[k + STRIP_MARGIN] && shots > 0
+            ? this.photoSymbols[(((k * 3 + r) % shots) + shots) % shots]
+            : this.symbols[cellAt(strip, k)];
         if (!sprites) continue;
         const onLine = Math.abs(s - k) < 0.5;
-        const grow = onLine ? 1 + 0.06 * pulse + 0.13 * pop : 1;
+        // The two of a kind breathe while the last reel runs.
+        const tense = r < REELS - 1 ? this.suspense * (0.02 + 0.05 * this.suspensePulse) : 0;
+        const grow = onLine ? 1 + 0.06 * pulse + 0.13 * pop + tense : 1;
         const y = payline + place.y * f.u;
         this.drawSymbol(sprites, x, y, place.scale * grow, grow, blur);
       }
       ctx.restore();
       if (pop > 0 && play) this.drawLock(x, payline, play.slots.reels[r]!, t);
     }
+  }
+
+  /** Suspense level from the moment the second reel rests until the last reel clunks. */
+  private measureSuspense(now: number): void {
+    const play = this.current;
+    const t = this.playTime(now);
+    this.suspense = 0;
+    this.suspensePulse = 0;
+    if (!play || t === null || this.highlight) return;
+    const second = play.slots.reels[REELS - 2]!;
+    const last = play.slots.reels[REELS - 1]!;
+    if (t < second.rest || t >= last.peak) return;
+    const since = t - second.rest;
+    this.suspense = Math.min(1, since / 220);
+    // About 1.5 pulses per second.
+    this.suspensePulse = 0.5 - 0.5 * Math.cos(since / 105);
+  }
+
+  /** Two of a kind on the payline glow, and the last reel's window burns hot. */
+  private drawSuspense(): void {
+    const level = this.suspense;
+    const hot = this.hotReel;
+    if (level <= 0 || !hot) return;
+    const { ctx, frame: f } = this;
+    const pulse = this.suspensePulse;
+    const sprite = this.glow(this.theme.palette.glow);
+    const y = py(f, PAYLINE);
+    ctx.save();
+    ctx.globalAlpha = level * (0.4 + 0.45 * pulse);
+    for (let r = 0; r < REELS - 1; r++) {
+      const box = BOXES[r]!;
+      const w = sprite.width * (1 + 0.05 * pulse);
+      ctx.drawImage(sprite, px(f, (box.left + box.right) / 2) - w / 2, y - w / 2, w, w);
+    }
+    const last = BOXES[REELS - 1]!;
+    const pad = (hot.width - (last.right - last.left) * f.u) / 2;
+    ctx.globalAlpha = level * (0.55 + 0.45 * pulse);
+    ctx.drawImage(hot, px(f, last.left) - pad, py(f, last.top) - pad);
+    ctx.restore();
   }
 
   /** A ring of light bursts from a symbol as its reel locks in place. */
@@ -482,29 +551,25 @@ export class SlotsStage implements GameStage {
     ctx.globalAlpha = 1;
   }
 
+  /** "No prizes left" (or "Awaiting entrants") in big letters across the glass. */
   private drawEmpty(): void {
     const { ctx, frame: f } = this;
     const view = this.view;
-    const screen = reelScreen();
     const text = view ? emptyMessage(view) : '';
     if (!text) return;
-    const width = (screen.right - screen.left) * f.u;
-    ctx.save();
-    ctx.font = `700 100px ${this.theme.palette.display}`;
-    const size = Math.min(0.13 * f.u, (width * 0.85) / (ctx.measureText(text).width / 100));
-    ctx.restore();
-    sticker(
-      ctx,
-      text,
-      px(f, (screen.left + screen.right) / 2),
-      py(f, paylineY()),
-      size,
-      this.theme.palette.display,
-      {
-        fill: this.theme.palette.text,
-        outline: this.theme.palette.outline,
-      },
-    );
+    const { display, text: fill, outline } = this.theme.palette;
+    const measure = (line: string) => {
+      ctx.font = `700 100px ${display}`;
+      return ctx.measureText(line).width / 100;
+    };
+    const width = (SCREEN.right - SCREEN.left) * f.u * 0.85;
+    const height = (SCREEN.bottom - SCREEN.top) * f.u * 0.7;
+    const fit = fitLabel(text, measure, width, height, 0.2 * f.u, 1.1);
+    const x = px(f, (SCREEN.left + SCREEN.right) / 2);
+    fit.lines.forEach((line, i) => {
+      const y = py(f, PAYLINE) + (i - (fit.lines.length - 1) / 2) * fit.size * 1.1;
+      sticker(ctx, line, x, y, fit.size, display, { fill, outline });
+    });
   }
 
   private drawHighlight(now: number): void {
@@ -514,21 +579,20 @@ export class SlotsStage implements GameStage {
     const style = this.theme.highlight(highlight.tier, highlight.bust);
     const fade = Math.min(1, (now - highlight.start) / 450);
     const pulse = 0.5 + 0.5 * Math.sin((now - highlight.start) / 170);
-    const screen = reelScreen();
-    const left = px(f, screen.left);
-    const width = (screen.right - screen.left) * f.u;
-    const line = paylineY();
+    const left = px(f, SCREEN.left);
+    const width = (SCREEN.right - SCREEN.left) * f.u;
+    const line = PAYLINE;
     const band = LAYOUT.pitch * 0.5;
     // Dim the rows above and below the payline.
     ctx.fillStyle = `rgba(${style.shade ?? '0, 0, 0'}, ${style.dim * 1.25 * fade})`;
-    ctx.fillRect(left, py(f, screen.top), width, (line - band - screen.top) * f.u);
-    ctx.fillRect(left, py(f, line + band), width, (screen.bottom - line - band) * f.u);
+    ctx.fillRect(left, py(f, SCREEN.top), width, (line - band - SCREEN.top) * f.u);
+    ctx.fillRect(left, py(f, line + band), width, (SCREEN.bottom - line - band) * f.u);
     // Light ring around each winning symbol: neon for everyday wins, the tier's gold or the bust red.
     const precious = highlight.tier === 'legendary' || highlight.tier === 'jackpot';
     const sprite = this.glow(highlight.bust || precious ? style.glow : this.theme.palette.glow);
     const y = py(f, line);
     ctx.globalAlpha = fade * (0.55 + 0.45 * pulse);
-    for (const box of reelBoxes()) {
+    for (const box of BOXES) {
       const x = px(f, (box.left + box.right) / 2);
       const grow = 1 + 0.06 * pulse;
       const w = sprite.width * grow;
@@ -539,8 +603,7 @@ export class SlotsStage implements GameStage {
 
   private drawPayline(now: number): void {
     const { ctx, frame: f } = this;
-    const screen = reelScreen();
-    const y = py(f, paylineY());
+    const y = py(f, PAYLINE);
     const highlight = this.highlight;
     const { trim, trimLight } = this.theme.palette;
     ctx.save();
@@ -560,8 +623,8 @@ export class SlotsStage implements GameStage {
       ctx.globalAlpha = 0.9;
     }
     ctx.beginPath();
-    ctx.moveTo(px(f, screen.left + 0.01), y);
-    ctx.lineTo(px(f, screen.right - 0.01), y);
+    ctx.moveTo(px(f, SCREEN.left + 0.01), y);
+    ctx.lineTo(px(f, SCREEN.right - 0.01), y);
     ctx.stroke();
     ctx.shadowColor = 'transparent';
     ctx.globalAlpha = 0.9;
@@ -687,14 +750,13 @@ export class SlotsStage implements GameStage {
     const u = (now % SWEEP_EVERY) / SWEEP_MS;
     if (u >= 1) return;
     const { ctx, frame: f } = this;
-    const screen = reelScreen();
-    const left = px(f, screen.left);
-    const width = (screen.right - screen.left) * f.u;
+    const left = px(f, SCREEN.left);
+    const width = (SCREEN.right - SCREEN.left) * f.u;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(left, py(f, screen.top), width, (screen.bottom - screen.top) * f.u);
+    ctx.rect(left, py(f, SCREEN.top), width, (SCREEN.bottom - SCREEN.top) * f.u);
     ctx.clip();
-    ctx.drawImage(sweep, left - sweep.width + (width + sweep.width) * u, py(f, screen.top));
+    ctx.drawImage(sweep, left - sweep.width + (width + sweep.width) * u, py(f, SCREEN.top));
     ctx.restore();
   }
 
@@ -800,101 +862,6 @@ export class SlotsStage implements GameStage {
     drawRod(ctx, lever, pivot, knobY);
     const w = knob.width * scale;
     ctx.drawImage(knob, pivot.x - w / 2, knobY - w / 2, w, w);
-  }
-
-  // ── Sounds ───────────────────────────────────────────────────────────────
-
-  /** Ratchet clack as the lever hits the bottom. */
-  private leverSound(): void {
-    this.sound.voice((ctx, out, t) => {
-      [0, 0.035, 0.07].forEach((delay, i) => {
-        const osc = ctx.createOscillator();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(900 - i * 180, t + delay);
-        osc.frequency.exponentialRampToValueAtTime(220, t + delay + 0.025);
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.value = 1200;
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.09, t + delay);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.03);
-        osc.connect(filter).connect(gain).connect(out);
-        osc.start(t + delay);
-        osc.stop(t + delay + 0.04);
-      });
-    });
-  }
-
-  /** Heavy "clunk" as a reel stops. */
-  private clunk(strength: number): void {
-    this.sound.voice((ctx, out, t) => {
-      const thump = ctx.createOscillator();
-      thump.type = 'sine';
-      thump.frequency.setValueAtTime(170, t);
-      thump.frequency.exponentialRampToValueAtTime(55, t + 0.12);
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.42 * strength, t + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.17);
-      thump.connect(gain).connect(out);
-      thump.start(t);
-      thump.stop(t + 0.2);
-
-      const click = ctx.createOscillator();
-      click.type = 'square';
-      click.frequency.setValueAtTime(2000, t);
-      click.frequency.exponentialRampToValueAtTime(500, t + 0.02);
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.value = 1600;
-      const clickGain = ctx.createGain();
-      clickGain.gain.setValueAtTime(0.07 * strength, t);
-      clickGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
-      click.connect(filter).connect(clickGain).connect(out);
-      click.start(t);
-      click.stop(t + 0.04);
-    });
-  }
-
-  /** Rising hum while the last reel crawls toward the payline. */
-  private teaseSound(seconds: number): void {
-    this.sound.voice((ctx, out, t) => {
-      const osc = ctx.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(330, t);
-      osc.frequency.exponentialRampToValueAtTime(660, t + seconds);
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.05, t + Math.min(0.15, seconds / 2));
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + seconds + 0.05);
-      osc.connect(gain).connect(out);
-      osc.start(t);
-      osc.stop(t + seconds + 0.1);
-    });
-  }
-
-  /** Short coin jingle once the triple is in. */
-  private jingle(): void {
-    this.sound.voice((ctx, out, t) => {
-      [2637, 3136, 2794, 3520, 4186].forEach((frequency, i) => {
-        const at = t + i * 0.055;
-        for (const [ratio, level] of [
-          [1, 0.05],
-          [2.76, 0.018],
-        ] as const) {
-          const osc = ctx.createOscillator();
-          osc.type = 'sine';
-          osc.frequency.value = frequency * ratio;
-          const gain = ctx.createGain();
-          gain.gain.setValueAtTime(0.0001, at);
-          gain.gain.exponentialRampToValueAtTime(level, at + 0.004);
-          gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.28);
-          osc.connect(gain).connect(out);
-          osc.start(at);
-          osc.stop(at + 0.3);
-        }
-      });
-    });
   }
 }
 

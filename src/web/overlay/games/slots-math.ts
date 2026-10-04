@@ -13,6 +13,8 @@ export const TEASE_ODDS = 0.4;
 export const STRIP_MARGIN = 2;
 /** Share of filler cells that show the streamer's photo instead of a prize (when there is one). */
 export const PHOTO_ODDS = 0.07;
+/** Same for the cells off the payline of the reels at rest (so the photo is seen sharp now and then). */
+export const REST_PHOTO_ODDS = 0.05;
 
 /** How far a reel kicks back (in symbols) when the lever drops, before it spins. */
 const WIND = 0.25;
@@ -250,6 +252,17 @@ export function restingCells(count: number, seed: number, payline: number | null
   return cells;
 }
 
+/**
+ * Which cells of the reels at rest (same layout as `restingCells`) show the streamer's photo when
+ * one is loaded: now and then one next to the payline, never on it.
+ */
+export function restingPhotos(seed: number): boolean[][] {
+  const next = seededRandom((seed ^ 0x9e3779b9) >>> 0);
+  return Array.from({ length: REELS }, () =>
+    Array.from({ length: STRIP_MARGIN * 2 + 1 }, (_, i) => next() < REST_PHOTO_ODDS && i !== STRIP_MARGIN),
+  );
+}
+
 /** What a play needs from the server's spin (the `PlayPlan` fields this module uses). */
 export interface SlotsSpin {
   wheel: Pick<WheelView, 'key' | 'sizing' | 'segments'>;
@@ -281,6 +294,11 @@ export function restingReels(wheel: SlotsSpin['wheel'], rotation: number): numbe
   return restingCells(wheel.segments.length, restingSeed(wheel.key, rotation), lastWinner(wheel, rotation));
 }
 
+/** Photo cells of the resting reels of a wheel at a resting angle (see `restingPhotos`). */
+export function restingPhotoCells(wheel: Pick<WheelView, 'key'>, rotation: number): boolean[][] {
+  return restingPhotos(restingSeed(wheel.key, rotation));
+}
+
 /**
  * Plans a whole play from the spin alone: the reels start from the resting reels at `fromRotation`,
  * all land on the winner (a triple) amid the resting reels at `toRotation`, and everything in
@@ -296,6 +314,8 @@ export function planSlots(spin: SlotsSpin): SlotsPlay {
   const reels = reelMotions(durationMs, lever, tease, jitter);
   const start = restingReels(wheel, spin.fromRotation);
   const end = restingCells(n, restingSeed(wheel.key, spin.toRotation), winner);
+  const startPhotos = restingPhotoCells(wheel, spin.fromRotation);
+  const endPhotos = restingPhotoCells(wheel, spin.toRotation);
 
   const strips: number[][] = [];
   const photos: boolean[][] = [];
@@ -308,14 +328,18 @@ export function planSlots(spin: SlotsSpin): SlotsPlay {
       // Every cell draws the same numbers, so the seed alone decides the strip.
       const roll = next();
       const pick = Math.floor(next() * n);
-      const fixed =
-        cell <= STRIP_MARGIN
-          ? start[r]![i]
-          : cell >= motion.stop - STRIP_MARGIN
-            ? end[r]![cell - motion.stop + STRIP_MARGIN]
-            : undefined;
-      strip.push(fixed ?? pick);
-      photo.push(fixed === undefined && roll < PHOTO_ODDS);
+      // The first and last cells are the reels at rest before and after the play.
+      if (cell <= STRIP_MARGIN) {
+        strip.push(start[r]![i]!);
+        photo.push(startPhotos[r]![i]!);
+      } else if (cell >= motion.stop - STRIP_MARGIN) {
+        const k = cell - motion.stop + STRIP_MARGIN;
+        strip.push(end[r]![k]!);
+        photo.push(endPhotos[r]![k]!);
+      } else {
+        strip.push(pick);
+        photo.push(roll < PHOTO_ODDS);
+      }
     }
     strips.push(strip);
     photos.push(photo);

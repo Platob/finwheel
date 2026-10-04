@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { WHEEL_COMMAND, WHEEL_COMMAND_FORMAT, wheelCommandIssue } from './chat-commands.js';
 import {
   GAMES,
   MAX_HUB_PHOTOS,
@@ -63,13 +64,11 @@ export const WheelSchema = z.object({
   spinsPerTurn: z.number().int().min(1).max(20).default(1),
   /** How the prizes are played on the overlay: a wheel or a mini-game (slots, claw, plinko, gifts). */
   game: z.enum(GAMES).default('wheel'),
-  /** Chat command that starts a game on this wheel (e.g. "!slots"), on top of the spin command. */
-  command: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(/^![a-z0-9_-]{1,24}$/, 'Use "!" followed by letters, numbers, "-" or "_"')
-    .optional(),
+  /**
+   * Chat command that starts a game on this wheel (e.g. "!slots"), with the same permission,
+   * cooldown and moderator arguments as the spin command. Unique; never a word the bot already uses.
+   */
+  command: z.string().trim().toLowerCase().regex(WHEEL_COMMAND, WHEEL_COMMAND_FORMAT).optional(),
   prizes: z.array(PrizeSchema).max(64),
 });
 
@@ -155,19 +154,15 @@ export const ConfigSchema = z
   })
   .superRefine((cfg, ctx) => {
     const wheelIds = new Set<string>();
-    const commands = new Map<string, string>();
+    const words = {
+      spinCommand: cfg.settings.twitch.spinCommand,
+      raffleKeyword: cfg.settings.raffle.keyword,
+    };
     cfg.wheels.forEach((wheel, w) => {
-      if (wheel.command) {
-        const taken = commands.get(wheel.command);
-        if (taken || wheel.command === cfg.settings.twitch.spinCommand.toLowerCase()) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['wheels', w, 'command'],
-            message: `"${wheel.command}" is already used by ${taken ? `wheel "${taken}"` : 'the spin command'}`,
-          });
-        }
-        commands.set(wheel.command, wheel.id);
-      }
+      // A badly formed command is already reported by its own field.
+      const clash =
+        wheel.command && WHEEL_COMMAND.test(wheel.command) ? wheelCommandIssue(cfg.wheels, w, words) : null;
+      if (clash) ctx.addIssue({ code: 'custom', path: ['wheels', w, 'command'], message: clash });
       if (wheelIds.has(wheel.id)) {
         ctx.addIssue({
           code: 'custom',

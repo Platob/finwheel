@@ -52,7 +52,11 @@ export function App() {
         </div>
         {state?.raffle.open && <span class="pill pill--live">Raffle</span>}
         <span class={`status ${connected ? 'is-on' : ''}`} title={connected ? 'Connected' : 'Disconnected'}>
-          {connected ? STAGE_LABELS[state?.stage ?? 'idle'] : 'Offline'}
+          {!connected
+            ? 'Offline'
+            : state?.stage === 'spinning' && state.spin && state.spin.wheel.game !== 'wheel'
+              ? 'Playing'
+              : STAGE_LABELS[state?.stage ?? 'idle']}
         </span>
       </header>
 

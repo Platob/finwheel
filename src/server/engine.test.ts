@@ -91,6 +91,21 @@ describe('spinning', () => {
     expect(configs.length).toBeGreaterThan(0);
   });
 
+  it('times game plays by their pace, plinko capped', () => {
+    const wheel = (id: string, game: string) => ({ id, name: id, game, prizes: [prize('a'), prize('b')] });
+    const config = makeConfig({
+      wheels: [wheel('main', 'wheel'), wheel('slots', 'slots'), wheel('drop', 'plinko')],
+      settings: { spin: { durationMs: 20000, resultHoldMs: 5000, followUpHoldMs: 2000 } },
+    });
+    // random() = 0.5 is the middle of the ±8 % jitter.
+    const durations = ['main', 'slots', 'drop'].map((wheelId) => {
+      const engine = new WheelEngine({ config: structuredClone(config), random: () => 0.5 });
+      engine.requestSpin({ player: 'ana', wheelId, source: 'manual' });
+      return engine.snapshot().spin!.durationMs;
+    });
+    expect(durations).toEqual([20000, 14000, 10000]);
+  });
+
   it('refuses unknown wheels and empty wheels', () => {
     const config = makeConfig({
       wheels: [

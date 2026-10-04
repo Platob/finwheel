@@ -2,7 +2,7 @@
 import type { Segment } from '../../../shared/types';
 import type { PrizeStyle, WheelTheme } from '../themes/types';
 import { createCanvas, TAU } from '../wheel-face';
-import { fitLines, mixColor, withAlpha } from './claw-math';
+import { fitLines, mixColor, stickerColors, withAlpha } from './claw-math';
 
 export const EMOJI = /\p{Extended_Pictographic}/u;
 const EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
@@ -233,34 +233,66 @@ export function drawCapsule(
   ctx.restore();
 }
 
-/** Label printed on a capsule of radius `r` at the origin. */
+/** Sticker lettering colours of a prize, with enough contrast between fill and outline. */
+export function labelColors(style: PrizeStyle): { fill: string; outline: string } {
+  return stickerColors(style.text, style.outline);
+}
+
+/** Smallest lettering worth drawing on a capsule (canvas pixels); smaller is just noise. */
+const MIN_LABEL_PX = 7;
+
+/**
+ * Label printed on a capsule of radius `r` at the origin. `front` labels are centred (a capsule
+ * seen whole); `back` ones sit higher, where the row in front of the capsule does not cover them.
+ */
 export function capsuleLabel(
   ctx: CanvasRenderingContext2D,
   segment: Segment,
   r: number,
   style: PrizeStyle,
   theme: WheelTheme,
+  placement: 'front' | 'back' = 'front',
 ) {
   const { icon, main, caption } = prizeText(segment);
   const text: TextStyle = {
-    fill: style.text,
-    outline: style.outline,
+    ...labelColors(style),
     family: theme.palette.display,
     stroke: 0.24,
   };
-  const measure = measurer(ctx, theme.palette.display);
+  const k = pixelScale(ctx);
+  const back = placement === 'back';
   if (icon) {
-    sticker(ctx, [icon], 0, -r * 0.02, r * 0.95, { ...text, shadow: 'rgba(0, 0, 0, 0.35)' });
+    sticker(ctx, [icon], 0, back ? -r * 0.2 : -r * 0.02, r * (back ? 0.82 : 0.95), {
+      ...text,
+      shadow: 'rgba(0, 0, 0, 0.35)',
+    });
     return;
   }
-  const px = r * pixelScale(ctx);
-  const withCaption = caption !== '' && px >= 26;
-  const fit = fitLines(main, 2, measure, r * 1.62, withCaption ? r * 0.82 : r * 1.12);
-  const size = Math.min(fit.size, r * 0.78);
-  sticker(ctx, fit.lines, 0, withCaption ? -r * 0.2 : -r * 0.07, size, text);
+  const measure = measurer(ctx, theme.palette.display);
+  const withCaption = caption !== '' && r * k >= 26;
+  // Box of the main text: centre, width and height (relative to r).
+  const [y, width, height] = back
+    ? withCaption
+      ? [-0.4, 1.5, 0.6]
+      : [-0.24, 1.56, 0.92]
+    : withCaption
+      ? [-0.2, 1.62, 0.82]
+      : [-0.07, 1.62, 1.12];
+  const fit = fitLines(main, 2, measure, r * width, r * height);
+  const size = Math.min(fit.size, r * (back && withCaption ? 0.6 : 0.78));
+  if (size * k < MIN_LABEL_PX) return;
+  sticker(ctx, fit.lines, 0, r * y, size, text);
   if (withCaption) {
-    const capFit = fitLines(caption.toUpperCase(), 1, measurer(ctx, theme.palette.ui), r * 1.3, r * 0.3);
-    sticker(ctx, capFit.lines, 0, r * 0.43, Math.min(capFit.size, r * 0.3), {
+    const capFit = fitLines(
+      caption.toUpperCase(),
+      1,
+      measurer(ctx, theme.palette.ui),
+      r * (back ? 1.24 : 1.3),
+      r * 0.3,
+    );
+    const capSize = Math.min(capFit.size, r * (back ? 0.24 : 0.3));
+    if (capSize * k < MIN_LABEL_PX * 0.85) return;
+    sticker(ctx, capFit.lines, 0, r * (back ? 0.1 : 0.43), capSize, {
       ...text,
       family: theme.palette.ui,
       stroke: 0.3,

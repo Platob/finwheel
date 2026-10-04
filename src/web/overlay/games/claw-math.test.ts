@@ -7,11 +7,13 @@ import {
   hashString,
   idleFrame,
   layoutPile,
+  luminance,
   mixColor,
   parseColor,
   pickTarget,
   planClaw,
   REST_OPEN,
+  stickerColors,
   withAlpha,
   type ClawSetup,
 } from './claw-math.js';
@@ -38,6 +40,19 @@ describe('colours', () => {
     expect(mixColor('#000000', '#ffffff', 0.5)).toBe('rgb(128, 128, 128)');
     expect(mixColor('rgb(0, 0, 0)', '#ff0000', 2)).toBe('rgb(255, 0, 0)');
     expect(withAlpha('#ff5fa8', 0.25)).toBe('rgba(255, 95, 168, 0.25)');
+  });
+
+  it('measures luminance', () => {
+    expect(luminance('#000000')).toBe(0);
+    expect(luminance('#ffffff')).toBeCloseTo(1);
+    expect(luminance('#ff5fa8')).toBeGreaterThan(luminance('#5a0a3a'));
+  });
+
+  it('keeps contrasting sticker colours and fixes lettering that melts into its outline', () => {
+    expect(stickerColors('#ffffff', '#4a0b2e')).toEqual({ fill: '#ffffff', outline: '#4a0b2e' });
+    // Casino jackpot: dark brown lettering with a near-black outline turns light, outlined brown.
+    expect(stickerColors('#2a1a03', 'rgba(0, 0, 0, 0.85)')).toEqual({ fill: '#fff7e6', outline: '#2a1a03' });
+    expect(stickerColors('#fff3c4', '#ffffff')).toEqual({ fill: '#fff3c4', outline: '#1a0612' });
   });
 });
 

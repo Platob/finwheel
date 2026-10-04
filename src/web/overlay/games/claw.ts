@@ -34,6 +34,7 @@ import {
   drawSprite,
   drawStar,
   heartPath,
+  labelColors,
   makeSprite,
   measurer,
   prizeText,
@@ -89,8 +90,9 @@ interface Art {
   neon: HTMLCanvasElement;
   /** One sprite per depth row, and its centre. */
   rows: { sprite: Sprite; x: number; y: number }[];
-  /** One capsule per prize, at the front-row size. */
+  /** One capsule per prize, at the front-row size: label centred, and raised for the back rows. */
   capsules: Sprite[];
+  backCapsules: Sprite[];
   posters: Sprite[];
   empty: Sprite | null;
   hub: Sprite;
@@ -397,6 +399,7 @@ export class ClawStage implements GameStage {
       neon: neon.canvas,
       rows: [],
       capsules: [],
+      backCapsules: [],
       posters: this.photos.map((photo) => posterSprite(p, photo, u)),
       empty: null,
       hub: hubSprite(p, claw.hub, u),
@@ -420,9 +423,9 @@ export class ClawStage implements GameStage {
     const claw = this.clawSize();
     if (claw.hub !== art.claw.hub) art.hub = hubSprite(this.theme.palette, claw.hub, art.u);
     art.claw = claw;
-    art.capsules = (this.view?.segments ?? []).map((segment, i) =>
-      this.capsuleSprite(segment, i, claw.r, art.u),
-    );
+    const segments = this.view?.segments ?? [];
+    art.capsules = segments.map((segment, i) => this.capsuleSprite(segment, i, claw.r, art.u, 'front'));
+    art.backCapsules = segments.map((segment, i) => this.capsuleSprite(segment, i, claw.r, art.u, 'back'));
     art.empty = this.emptySprite(art.u);
     art.rows = this.rowSprites(-1);
     if (this.game) this.buildGameSprites();
@@ -433,27 +436,39 @@ export class ClawStage implements GameStage {
     const { art, game } = this;
     if (!art || !game) return;
     const capsule = this.pile.capsules[game.target];
-    game.rowWithout = capsule ? (this.rowSprites(game.target)[capsule.row]?.sprite ?? null) : null;
+    game.rowWithout = capsule
+      ? (this.rowSprites(game.target, capsule.row)[capsule.row]?.sprite ?? null)
+      : null;
     const segment = game.plan.wheel.segments[game.plan.segmentIndex];
     game.reveal = segment ? this.revealSprites(segment, game.plan.segmentIndex, art.u) : null;
   }
 
-  private capsuleSprite(segment: Segment, index: number, r: number, u: number): Sprite {
+  private capsuleSprite(
+    segment: Segment,
+    index: number,
+    r: number,
+    u: number,
+    placement: 'front' | 'back',
+  ): Sprite {
     const { sprite, ctx } = makeSprite(r * 2.24, r * 2.24, u);
     const style = this.segmentStyle(index);
     drawCapsule(ctx, r, style, this.theme);
-    capsuleLabel(ctx, segment, r, style, this.theme);
+    capsuleLabel(ctx, segment, r, style, this.theme, placement);
     return sprite;
   }
 
-  /** Depth rows of the pile (optionally leaving out one capsule), tinted darker towards the back. */
-  private rowSprites(skip: number): Art['rows'] {
+  /**
+   * Depth rows of the pile, tinted darker towards the back; optionally leaving out one capsule, and
+   * only building row `only`.
+   */
+  private rowSprites(skip: number, only = -1): Art['rows'] {
     const art = this.art;
     if (!art) return [];
     const { capsules } = this.pile;
     const rows: Art['rows'] = [];
     const shade = this.theme.palette.outline;
     for (let row = 0; row < this.pile.rows; row++) {
+      if (only >= 0 && row !== only) continue;
       const members = capsules.filter((c) => c.row === row);
       if (members.length === 0) continue;
       const top = Math.min(...members.map((c) => c.y - c.r)) - 0.04;
@@ -471,7 +486,7 @@ export class ClawStage implements GameStage {
         ctx.ellipse(c.x, c.y + c.r * 0.9, c.r * 0.85, c.r * 0.18, 0, 0, TAU);
         ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
         ctx.fill();
-        this.drawPileCapsule(ctx, c);
+        this.drawPileCapsule(ctx, c, row < this.pile.rows - 1);
       }
       const depth = members[0]!.depth;
       if (depth < 1) {
@@ -485,13 +500,14 @@ export class ClawStage implements GameStage {
     return rows;
   }
 
-  private drawPileCapsule(ctx: CanvasRenderingContext2D, c: PileCapsule, scale = 1): void {
-    const sprite = this.art?.capsules[c.prize];
+  /** A capsule lying in the pile (`back`: a row in front of it hides its lower part). */
+  private drawPileCapsule(ctx: CanvasRenderingContext2D, c: PileCapsule, back = false): void {
+    const sprite = (back ? this.art?.backCapsules : this.art?.capsules)?.[c.prize];
     if (!sprite) return;
     ctx.save();
     ctx.translate(c.x, c.y);
     ctx.rotate(c.tilt);
-    drawSprite(ctx, sprite, 0, 0, depthScale(c.depth) * scale);
+    drawSprite(ctx, sprite, 0, 0, depthScale(c.depth));
     ctx.restore();
   }
 
@@ -501,7 +517,7 @@ export class ClawStage implements GameStage {
     const theme = this.theme;
     const closed = makeSprite(R * 2.24, R * 2.24, u);
     drawCapsule(closed.ctx, R, style, theme);
-    capsuleLabel(closed.ctx, segment, R, style, theme);
+    capsuleLabel(closed.ctx, segment, R, style, theme, 'front');
     const top = makeSprite(R * 2.24, R * 2.24, u);
     drawCapsule(top.ctx, R, style, theme, 'top');
     const bottom = makeSprite(R * 2.24, R * 2.24, u);
@@ -512,8 +528,7 @@ export class ClawStage implements GameStage {
     const { icon, main, caption } = prizeText(segment);
     const ctx = prize.ctx;
     const text: TextStyle = {
-      fill: style.text,
-      outline: style.outline,
+      ...labelColors(style),
       family: theme.palette.display,
       stroke: 0.22,
       shadow: withAlpha(theme.palette.glow, 0.9),
@@ -772,11 +787,15 @@ export class ClawStage implements GameStage {
       ctx.restore();
     }
     const sinceSlip = t - slipAt;
-    if (sinceSlip >= 0 && sinceSlip < 950 && (frame.capsule === 'held' || frame.phase === 'lift')) {
+    // The "!!" lasts a little less than a second, shorter in quick plays.
+    const { lift, carry } = game.script.phases;
+    const alertMs = clamp(0.6 * (lift.duration + carry.duration), 400, 950);
+    if (sinceSlip >= 0 && sinceSlip < alertMs && (frame.capsule === 'held' || frame.phase === 'lift')) {
       const { x, y, r } = this.heldCapsule(frame, target);
       const side = x > 0.25 ? -1 : 1;
+      const fadeMs = alertMs * 0.26;
       ctx.save();
-      ctx.globalAlpha = sinceSlip > 700 ? 1 - (sinceSlip - 700) / 250 : 1;
+      ctx.globalAlpha = sinceSlip > alertMs - fadeMs ? (alertMs - sinceSlip) / fadeMs : 1;
       ctx.translate(x + side * (r + 0.13), y - r * 0.9);
       ctx.rotate(side * 0.18 + 0.05 * Math.sin(sinceSlip / 45));
       drawSprite(ctx, art.alert, 0, 0, easeOutBack(Math.min(1, sinceSlip / 160), 2.6));

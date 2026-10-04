@@ -19,7 +19,10 @@ import {
   reelPosition,
   REELS,
   reelSpeed,
+  REST_PHOTO_ODDS,
   restingCells,
+  restingPhotoCells,
+  restingPhotos,
   restingReels,
   settlePop,
   STOP_AT,
@@ -164,10 +167,14 @@ describe('strips', () => {
       const play = planSlots(input);
       const before = restingReels(input.wheel, input.fromRotation);
       const after = restingReels(input.wheel, input.toRotation);
+      const photosBefore = restingPhotoCells(input.wheel, input.fromRotation);
+      const photosAfter = restingPhotoCells(input.wheel, input.toRotation);
       play.reels.forEach((m, r) => {
         for (let k = -STRIP_MARGIN; k <= STRIP_MARGIN; k++) {
           expect(cellAt(play.strips[r]!, k)).toBe(before[r]![k + STRIP_MARGIN]);
           expect(cellAt(play.strips[r]!, m.stop + k)).toBe(after[r]![k + STRIP_MARGIN]);
+          expect(play.photos[r]![k + STRIP_MARGIN]).toBe(photosBefore[r]![k + STRIP_MARGIN]);
+          expect(play.photos[r]![m.stop + k + STRIP_MARGIN]).toBe(photosAfter[r]![k + STRIP_MARGIN]);
         }
       });
       // The next play starts exactly where this one landed.
@@ -205,6 +212,26 @@ describe('strips', () => {
           if (i !== STRIP_MARGIN) expect(isTriple(i)).toBe(false);
       }
     }
+  });
+
+  it('shows the photo now and then next to the payline at rest, never on it', () => {
+    let shown = 0;
+    let cells = 0;
+    for (let seed = 0; seed < 3000; seed++) {
+      const photos = restingPhotos(seed);
+      expect(restingPhotos(seed)).toEqual(photos);
+      for (const reel of photos) {
+        expect(reel).toHaveLength(STRIP_MARGIN * 2 + 1);
+        expect(reel[STRIP_MARGIN]).toBe(false);
+        reel.forEach((photo, i) => {
+          if (i === STRIP_MARGIN) return;
+          cells++;
+          if (photo) shown++;
+        });
+      }
+    }
+    expect(shown / cells).toBeGreaterThan(REST_PHOTO_ODDS * 0.8);
+    expect(shown / cells).toBeLessThan(REST_PHOTO_ODDS * 1.2);
   });
 
   it('handles a single prize', () => {

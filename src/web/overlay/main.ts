@@ -10,6 +10,7 @@ import '../common/theme.css';
 import './overlay.css';
 import './overlay-glam.css';
 
+import { GAME_PLAYS } from '../../shared/constants';
 import { formatMoney } from '../../shared/rules';
 import { TIER_STYLES } from '../../shared/tiers';
 import type { ThemeId } from '../../shared/schema';
@@ -69,6 +70,7 @@ const ui = {
   statTotalBox: $('stat-total-box'),
   statNext: $('stat-next'),
   statNextBox: $('stat-next-box'),
+  statNextLabel: $('stat-next-label'),
 };
 
 let state: AppState | null = null;
@@ -256,12 +258,18 @@ function currentWheel(): WheelView | null {
   return state?.spin?.wheel ?? state?.display ?? null;
 }
 
+/** What one play of the game on screen is called, singular and plural ("pull", "pulls"). */
+function playWords(): readonly [one: string, many: string] {
+  return GAME_PLAYS[currentWheel()?.game ?? 'wheel'];
+}
+
 function updateChrome(s: AppState) {
   const wheel = currentWheel();
   const { overlay } = s.config.settings;
   const player = s.spin?.player;
   const name = wheel?.name ?? '';
-  const status = player ? `Spinning for ${player}` : (wheel?.subtitle ?? '');
+  const playing = wheel && wheel.game !== 'wheel' ? 'Playing' : 'Spinning';
+  const status = player ? `${playing} for ${player}` : (wheel?.subtitle ?? '');
   ui.plaqueTitle.textContent = name;
   ui.plaqueSub.textContent = status;
   ui.headlineStatus.textContent = status;
@@ -287,8 +295,11 @@ function updateChrome(s: AppState) {
     ui.statNextBox.classList.remove('is-armed');
     nextShown = 1;
   }
+  const [play] = playWords();
+  ui.statNextLabel.textContent = `next ${play}`;
   if (turn && showBank) {
-    ui.bankEyebrow.textContent = `Bank · Spin ${turn.spinNumber} of ${turn.spinsPlanned}`;
+    const label = play.charAt(0).toUpperCase() + play.slice(1);
+    ui.bankEyebrow.textContent = `Bank · ${label} ${turn.spinNumber} of ${turn.spinsPlanned}`;
     // A late reveal updates the bank itself, so the total never spoils the result.
     if (!pendingReveal) {
       setBank(turn.total, s.stage !== 'spinning');
@@ -335,10 +346,11 @@ function setSticker(el: HTMLElement, text: string) {
   el.dataset.text = text;
 }
 
-/** The "N spins left" stat box ("1 spin left" in the singular). */
+/** The "N spins left" stat box ("1 spin left" in the singular, "2 pulls left" on the slots). */
 function setSpinsLeft(count: number) {
+  const [one, many] = playWords();
   setSticker(ui.statSpins, String(count));
-  ui.statSpinsLabel.textContent = count === 1 ? 'spin left' : 'spins left';
+  ui.statSpinsLabel.textContent = `${count === 1 ? one : many} left`;
 }
 
 /** Spins left and the "×N next spin" boost of the stat row; the boost pops when it is armed. */
@@ -368,6 +380,7 @@ function reveal(result: SpinResult, quiet = false) {
 
   const isRaffle = result.kind === 'raffle';
   const boost = armedBoost(result);
+  const [play, plays] = playWords();
   // A "×N next" slice on the last spin of a game: its boost has no spin left to multiply.
   const unusedBoost = result.payout !== null && !bust && spin?.wheel.segments[index]?.effect === 'next';
   ui.result.dataset.tier = result.tier;
@@ -390,9 +403,9 @@ function reveal(result: SpinResult, quiet = false) {
   ui.resultDesc.textContent = isRaffle
     ? 'Congratulations!'
     : boost > 1
-      ? result.description || `Your next spin pays ×${boost}`
+      ? result.description || `Your next ${play} pays ×${boost}`
       : unusedBoost
-        ? 'No spins left for the boost'
+        ? `No ${plays} left for the boost`
         : emptyMultiplier
           ? 'Nothing in the bank to multiply yet'
           : bust && result.money?.before === 0
@@ -415,11 +428,11 @@ function reveal(result: SpinResult, quiet = false) {
   }
 
   const next: string[] = [];
-  if (result.extraSpins > 0) next.push(`+${result.extraSpins} free spin${result.extraSpins > 1 ? 's' : ''}`);
+  if (result.extraSpins > 0) next.push(`+${result.extraSpins} free ${result.extraSpins > 1 ? plays : play}`);
   if (result.followUpWheelId && result.followUpWheelId !== result.wheelKey) {
     next.push(`Next: ${wheelName(result.followUpWheelId)}`);
   } else if (result.followUpWheelId && result.extraSpins === 0) {
-    next.push('Next spin coming up');
+    next.push(`Next ${play} coming up`);
   }
   ui.resultNext.textContent = next.join(' · ');
 

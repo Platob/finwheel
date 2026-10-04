@@ -1,14 +1,52 @@
 import { useMemo, useState } from 'preact/hooks';
+import { wheelCommandIssue, type CommandWords } from '../../shared/chat-commands';
+import { GAMES, TIERS } from '../../shared/constants';
 import { formatMoney, simulateTurns } from '../../shared/rules';
-import { TIERS } from '../../shared/constants';
-import type { Prize, Wheel } from '../../shared/schema';
+import type { GameType, Prize, Wheel } from '../../shared/schema';
 import { TIER_STYLES } from '../../shared/tiers';
 import type { AppState } from '../../shared/types';
 import { useDraft } from './draft';
 import type { Send } from './server';
-import { Field, NumberInput, percent, Section } from './ui';
+import { Field, GAME_INFO, NumberInput, percent, Section } from './ui';
 
 const randomId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 7)}`;
+
+/** Quick picks for prize icons, in the glam money-game spirit. */
+const ICON_PICKS = ['🐷', '💰', '👑', '👠', '🎀', '💋', '💎', '💀', '🍑', '🧾', '💸', '🔥', '🎁'];
+/** Longest icon, in characters (code points, as the config schema counts them). */
+const ICON_MAX = 8;
+
+const iconIssue = (icon: string | undefined): string | null =>
+  icon !== undefined && [...icon].length > ICON_MAX ? `${ICON_MAX} characters at most` : null;
+
+/** Games whose look depends on the slice size setting, and how they name it. */
+const SIZING_FIELD: Partial<
+  Record<GameType, { label: string; weight: string; equal: string; warn: string }>
+> = {
+  wheel: {
+    label: 'Slice size',
+    weight: 'Matches the odds',
+    equal: 'All equal',
+    warn: "Slices look equal but the odds differ — viewers can't see the real chances.",
+  },
+  claw: {
+    label: 'Capsules',
+    weight: 'More for likelier prizes',
+    equal: 'Same for every prize',
+    warn: "Every prize has as many capsules but the odds differ — viewers can't see the real chances.",
+  },
+};
+
+/** First thing that stops the wheels from being saved, if any. */
+function firstProblem(wheels: Wheel[], words: CommandWords): string | null {
+  for (const [w, wheel] of wheels.entries()) {
+    const command = wheelCommandIssue(wheels, w, words);
+    if (command) return `${wheel.name}: ${command}`;
+    const icon = wheel.prizes.find((p) => iconIssue(p.icon));
+    if (icon) return `${wheel.name} · ${icon.label}: icon of ${ICON_MAX} characters at most`;
+  }
+  return null;
+}
 
 function newPrize(): Prize {
   return {
@@ -30,12 +68,22 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
   const { config } = state;
   const { draft: wheels, dirty, stale, update, reset, saved } = useDraft(config.wheels);
   const [selectedId, setSelectedId] = useState(config.activeWheelId);
+  /** Prize whose icon picker is open. */
+  const [iconFor, setIconFor] = useState<string | null>(null);
   const index = Math.max(
     0,
     wheels.findIndex((w) => w.id === selectedId),
   );
   const wheel = wheels[index]!;
   const money = (value: number) => formatMoney(value, config.settings.currency);
+  const game = GAME_INFO[wheel.game];
+  const sizing = SIZING_FIELD[wheel.game];
+  const words: CommandWords = {
+    spinCommand: config.settings.twitch.spinCommand,
+    raffleKeyword: config.settings.raffle.keyword,
+  };
+  const commandError = wheelCommandIssue(wheels, index, words);
+  const problem = firstProblem(wheels, words);
 
   const stats = useMemo(
     () => simulateTurns({ wheels, settings: config.settings }, wheel.id, 10000),
@@ -67,6 +115,7 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
       ),
     );
     setSelectedId(id);
+    setIconFor(null);
   };
 
   const deleteWheel = () => {
@@ -76,6 +125,7 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
       for (const w of all) for (const p of w.prizes) if (p.chainWheelId === wheel.id) delete p.chainWheelId;
     });
     setSelectedId(wheels[index === 0 ? 1 : 0]!.id);
+    setIconFor(null);
   };
 
   const save = () => {
@@ -105,10 +155,16 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
           </div>
         }
       >
-        <select value={wheel.id} onChange={(e) => setSelectedId(e.currentTarget.value)}>
+        <select
+          value={wheel.id}
+          onChange={(e) => {
+            setSelectedId(e.currentTarget.value);
+            setIconFor(null);
+          }}
+        >
           {wheels.map((w) => (
             <option key={w.id} value={w.id}>
-              {w.name}
+              {GAME_INFO[w.game].icon} {w.name}
             </option>
           ))}
         </select>
@@ -117,7 +173,13 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
           <kbd>
             {config.settings.twitch.spinCommand} @viewer [spins] {wheel.id}
           </kbd>{' '}
-          and the API.
+          and the API
+          {wheel.command && !commandError ? (
+            <>
+              , or <kbd>{wheel.command}</kbd> in chat
+            </>
+          ) : null}
+          .
         </p>
         <div class="grid">
           <Field label="Name">
@@ -134,16 +196,47 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
               onInput={(e) => editWheel((w) => (w.subtitle = e.currentTarget.value))}
             />
           </Field>
-          <Field label="Slice size">
+          <Field label="Game">
             <select
-              value={wheel.sizing}
-              onChange={(e) => editWheel((w) => (w.sizing = e.currentTarget.value as Wheel['sizing']))}
+              value={wheel.game}
+              onChange={(e) => editWheel((w) => (w.game = e.currentTarget.value as GameType))}
             >
-              <option value="weight">Matches the odds</option>
-              <option value="equal">All equal</option>
+              {GAMES.map((g) => (
+                <option key={g} value={g}>
+                  {GAME_INFO[g].icon} {GAME_INFO[g].label}
+                </option>
+              ))}
             </select>
           </Field>
-          <Field label="Default spins" hint="Per game; choose another count when spinning">
+          <Field label="Chat command" hint="Optional, same rules as the spin command" error={commandError}>
+            <input
+              value={wheel.command ?? ''}
+              placeholder={`e.g. ${game.command}`}
+              maxLength={25}
+              spellcheck={false}
+              autoComplete="off"
+              aria-invalid={commandError ? true : undefined}
+              onInput={(e) => {
+                const value = e.currentTarget.value.trim().toLowerCase();
+                editWheel((w) => {
+                  if (value) w.command = value;
+                  else delete w.command;
+                });
+              }}
+            />
+          </Field>
+          {sizing && (
+            <Field label={sizing.label}>
+              <select
+                value={wheel.sizing}
+                onChange={(e) => editWheel((w) => (w.sizing = e.currentTarget.value as Wheel['sizing']))}
+              >
+                <option value="weight">{sizing.weight}</option>
+                <option value="equal">{sizing.equal}</option>
+              </select>
+            </Field>
+          )}
+          <Field label={`Default ${game.plays}`} hint="Per game; choose another count when playing">
             <NumberInput
               value={wheel.spinsPerTurn}
               min={1}
@@ -172,16 +265,27 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
             </div>
           </div>
         )}
-        {wheel.sizing === 'equal' && new Set(wheel.prizes.map((p) => p.weight)).size > 1 && (
-          <p class="hint warn">Slices look equal but the odds differ — viewers can't see the real chances.</p>
+        {sizing && wheel.sizing === 'equal' && new Set(wheel.prizes.map((p) => p.weight)).size > 1 && (
+          <p class="hint warn">{sizing.warn}</p>
         )}
       </Section>
 
-      <Section title={`Slices · ${wheel.prizes.length}`}>
+      <Section title={`${game.items} · ${wheel.prizes.length}`}>
+        {game.hint && <p class="hint">{game.hint}</p>}
         <ol class="prizes">
           {wheel.prizes.map((prize, i) => (
             <li key={prize.id} class={`prize prize--${prize.bust ? 'bust' : prize.tier}`}>
               <div class="prize-head">
+                <button
+                  type="button"
+                  class={`prize-icon${prize.icon ? '' : ' is-empty'}${iconIssue(prize.icon) ? ' is-invalid' : ''}`}
+                  title={prize.icon ? `Icon ${prize.icon}` : 'Add an icon'}
+                  aria-label="Icon"
+                  aria-expanded={iconFor === prize.id}
+                  onClick={() => setIconFor(iconFor === prize.id ? null : prize.id)}
+                >
+                  {prize.icon ?? '+'}
+                </button>
                 <input
                   class="prize-label"
                   value={prize.label}
@@ -216,6 +320,18 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
                   ×
                 </button>
               </div>
+              {iconFor === prize.id && (
+                <IconPicker
+                  icon={prize.icon}
+                  game={wheel.game}
+                  onChange={(icon) =>
+                    editPrize(i, (p) => {
+                      if (icon) p.icon = icon;
+                      else delete p.icon;
+                    })
+                  }
+                />
+              )}
               <div class="grid grid--3">
                 <Field label="Weight">
                   <NumberInput
@@ -324,22 +440,74 @@ export function WheelsTab({ state, send }: { state: AppState; send: Send }) {
           ))}
         </ol>
         <button class="btn btn--ghost btn--block" onClick={() => editWheel((w) => w.prizes.push(newPrize()))}>
-          + Add slice
+          + Add {game.item}
         </button>
       </Section>
 
       <div class={`savebar${dirty ? ' is-dirty' : ''}`}>
-        <span class="muted small">
-          {stale ? 'Changed on the server while you edit' : dirty ? 'Unsaved changes' : 'All changes saved'}
+        <span class={`small ${problem && dirty ? 'bad' : 'muted'}`}>
+          {problem && dirty
+            ? problem
+            : stale
+              ? 'Changed on the server while you edit'
+              : dirty
+                ? 'Unsaved changes'
+                : 'All changes saved'}
         </span>
         <button class="btn btn--ghost btn--small" disabled={!dirty} onClick={reset}>
           Revert
         </button>
-        <button class="btn btn--gold btn--small" disabled={!dirty} onClick={save}>
+        <button class="btn btn--gold btn--small" disabled={!dirty || problem !== null} onClick={save}>
           Save wheels
         </button>
       </div>
     </>
+  );
+}
+
+/** Icon of a prize: any emoji or short symbol, or one of the quick picks. */
+function IconPicker(props: { icon: string | undefined; game: GameType; onChange: (icon: string) => void }) {
+  return (
+    <div class="icon-picker">
+      <Field
+        label="Icon"
+        error={iconIssue(props.icon)}
+        hint={
+          props.game === 'wheel'
+            ? 'Shown by the mini-games (slots, claw, plinko, gifts)'
+            : 'Emoji or short symbol'
+        }
+      >
+        <input
+          value={props.icon ?? ''}
+          placeholder="Emoji"
+          autoComplete="off"
+          onInput={(e) => props.onChange(e.currentTarget.value.trim())}
+        />
+      </Field>
+      <div class="icon-picks" role="group" aria-label="Quick picks">
+        {ICON_PICKS.map((icon) => (
+          <button
+            key={icon}
+            type="button"
+            class={`icon-pick${props.icon === icon ? ' is-active' : ''}`}
+            title={icon}
+            onClick={() => props.onChange(icon)}
+          >
+            {icon}
+          </button>
+        ))}
+        <button
+          type="button"
+          class="icon-pick icon-pick--none"
+          disabled={!props.icon}
+          title="No icon"
+          onClick={() => props.onChange('')}
+        >
+          ∅
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -418,6 +418,363 @@
       ]
     },
     {
+      "id": "loser-slots",
+      "name": "Loser Slots",
+      "subtitle": "Three in a row or cry about it",
+      "sizing": "weight",
+      "spinsPerTurn": 3,
+      "game": "slots",
+      "command": "!slots",
+      "prizes": [
+        {
+          "id": "c2",
+          "label": "$2",
+          "icon": "🍑",
+          "weight": 6,
+          "tier": "common",
+          "cash": 2,
+          "description": "$2 added to your total"
+        },
+        {
+          "id": "c4",
+          "label": "$4",
+          "icon": "💋",
+          "weight": 6,
+          "tier": "common",
+          "cash": 4,
+          "description": "$4 added to your total"
+        },
+        {
+          "id": "c6",
+          "label": "$6",
+          "icon": "🎀",
+          "weight": 5,
+          "tier": "common",
+          "cash": 6,
+          "description": "$6 added to your total"
+        },
+        {
+          "id": "c8-spin",
+          "label": "$8 + Spin",
+          "icon": "🐷",
+          "weight": 2.5,
+          "tier": "rare",
+          "cash": 8,
+          "extraSpins": 1,
+          "description": "$8 added to your total and a free pull"
+        },
+        {
+          "id": "c12",
+          "label": "$12",
+          "icon": "👠",
+          "weight": 3,
+          "tier": "rare",
+          "cash": 12,
+          "description": "$12 added to your total"
+        },
+        {
+          "id": "x2",
+          "label": "×2 Total",
+          "icon": "🔥",
+          "weight": 1.5,
+          "tier": "epic",
+          "multiplier": 2,
+          "description": "Your total is multiplied by 2"
+        },
+        {
+          "id": "next",
+          "label": "×2 Next",
+          "icon": "💖",
+          "weight": 2.5,
+          "tier": "epic",
+          "multiplier": 1,
+          "nextMultiplier": 2,
+          "description": "Your next spin pays double"
+        },
+        {
+          "id": "jackpot",
+          "label": "$50 Jackpot",
+          "icon": "👑",
+          "weight": 0.75,
+          "tier": "jackpot",
+          "cash": 50,
+          "description": "Three crowns: the big one"
+        }
+      ]
+    },
+    {
+      "id": "loser-claw",
+      "name": "Loser Claw",
+      "subtitle": "Grab your fate, loser",
+      "sizing": "weight",
+      "spinsPerTurn": 3,
+      "game": "claw",
+      "command": "!claw",
+      "prizes": [
+        {
+          "id": "c3",
+          "label": "$3",
+          "icon": "🧾",
+          "weight": 6,
+          "tier": "common",
+          "cash": 3,
+          "description": "$3 added to your total"
+        },
+        {
+          "id": "c5",
+          "label": "$5",
+          "icon": "🍑",
+          "weight": 6,
+          "tier": "common",
+          "cash": 5,
+          "description": "$5 added to your total"
+        },
+        {
+          "id": "c8",
+          "label": "$8",
+          "icon": "💋",
+          "weight": 5,
+          "tier": "common",
+          "cash": 8,
+          "description": "$8 added to your total"
+        },
+        {
+          "id": "c12",
+          "label": "$12",
+          "icon": "🎀",
+          "weight": 4,
+          "tier": "common",
+          "cash": 12,
+          "description": "$12 added to your total"
+        },
+        {
+          "id": "c5-spin",
+          "label": "$5 + Grab",
+          "icon": "🐷",
+          "weight": 2.5,
+          "tier": "rare",
+          "cash": 5,
+          "extraSpins": 1,
+          "description": "$5 added to your total and a free grab"
+        },
+        {
+          "id": "c20",
+          "label": "$20",
+          "icon": "💸",
+          "weight": 2.5,
+          "tier": "rare",
+          "cash": 20,
+          "description": "$20 added to your total"
+        },
+        {
+          "id": "x2",
+          "label": "×2 Total",
+          "icon": "🔥",
+          "weight": 1.5,
+          "tier": "epic",
+          "multiplier": 2,
+          "description": "Your total is multiplied by 2"
+        },
+        {
+          "id": "next",
+          "label": "×2 Next",
+          "icon": "💖",
+          "weight": 2,
+          "tier": "epic",
+          "multiplier": 1,
+          "nextMultiplier": 2,
+          "description": "Your next spin pays double"
+        },
+        {
+          "id": "c40",
+          "label": "$40",
+          "icon": "💎",
+          "weight": 1,
+          "tier": "legendary",
+          "cash": 40,
+          "description": "$40 added to your total"
+        },
+        {
+          "id": "bust",
+          "label": "Bankrupt",
+          "icon": "💀",
+          "weight": 1,
+          "tier": "common",
+          "bust": true,
+          "description": "Lose everything, turn over"
+        }
+      ]
+    },
+    {
+      "id": "simp-drop",
+      "name": "Simp Drop",
+      "subtitle": "The edges pay big… or bust",
+      "sizing": "weight",
+      "spinsPerTurn": 3,
+      "game": "plinko",
+      "command": "!drop",
+      "prizes": [
+        {
+          "id": "bust-l",
+          "label": "Bankrupt",
+          "icon": "💀",
+          "weight": 2,
+          "tier": "common",
+          "bust": true,
+          "description": "Lose everything, turn over"
+        },
+        {
+          "id": "c50-l",
+          "label": "$50",
+          "icon": "💎",
+          "weight": 2.5,
+          "tier": "legendary",
+          "cash": 50,
+          "description": "$50 added to your total"
+        },
+        {
+          "id": "x2",
+          "label": "×2 Total",
+          "icon": "🔥",
+          "weight": 5,
+          "tier": "epic",
+          "multiplier": 2,
+          "description": "Your total is multiplied by 2"
+        },
+        {
+          "id": "c15-l",
+          "label": "$15",
+          "icon": "💸",
+          "weight": 12,
+          "tier": "rare",
+          "cash": 15,
+          "description": "$15 added to your total"
+        },
+        {
+          "id": "c5",
+          "label": "$5",
+          "icon": "🍑",
+          "weight": 20,
+          "tier": "common",
+          "cash": 5,
+          "description": "$5 added to your total"
+        },
+        {
+          "id": "c15-r",
+          "label": "$15",
+          "icon": "💸",
+          "weight": 12,
+          "tier": "rare",
+          "cash": 15,
+          "description": "$15 added to your total"
+        },
+        {
+          "id": "next",
+          "label": "×2 Next",
+          "icon": "💖",
+          "weight": 5,
+          "tier": "epic",
+          "multiplier": 1,
+          "nextMultiplier": 2,
+          "description": "Your next spin pays double"
+        },
+        {
+          "id": "c50-r",
+          "label": "$50",
+          "icon": "💎",
+          "weight": 2.5,
+          "tier": "legendary",
+          "cash": 50,
+          "description": "$50 added to your total"
+        },
+        {
+          "id": "bust-r",
+          "label": "Bankrupt",
+          "icon": "💀",
+          "weight": 2,
+          "tier": "common",
+          "bust": true,
+          "description": "Lose everything, turn over"
+        }
+      ]
+    },
+    {
+      "id": "mystery-gifts",
+      "name": "Mystery Gifts",
+      "subtitle": "Pick a gift. Pray it's not a receipt",
+      "sizing": "weight",
+      "spinsPerTurn": 1,
+      "game": "gifts",
+      "command": "!gift",
+      "prizes": [
+        {
+          "id": "receipt",
+          "label": "$2 Receipt",
+          "icon": "🧾",
+          "weight": 4,
+          "tier": "common",
+          "cash": 2,
+          "description": "Just $2 and a receipt"
+        },
+        {
+          "id": "c5",
+          "label": "$5",
+          "icon": "💋",
+          "weight": 5,
+          "tier": "common",
+          "cash": 5,
+          "description": "$5 added to your total"
+        },
+        {
+          "id": "c10",
+          "label": "$10",
+          "icon": "🎀",
+          "weight": 4.5,
+          "tier": "common",
+          "cash": 10,
+          "description": "$10 added to your total"
+        },
+        {
+          "id": "c15",
+          "label": "$15",
+          "icon": "👠",
+          "weight": 3.5,
+          "tier": "rare",
+          "cash": 15,
+          "description": "$15 added to your total"
+        },
+        {
+          "id": "c25",
+          "label": "$25",
+          "icon": "💸",
+          "weight": 2,
+          "tier": "rare",
+          "cash": 25,
+          "description": "$25 added to your total"
+        },
+        {
+          "id": "double",
+          "label": "×2 Next + Gift",
+          "icon": "🎁",
+          "weight": 2,
+          "tier": "epic",
+          "multiplier": 1,
+          "nextMultiplier": 2,
+          "extraSpins": 1,
+          "description": "Open one more gift: it pays double"
+        },
+        {
+          "id": "jackpot",
+          "label": "$50 Jackpot",
+          "icon": "👑",
+          "weight": 1,
+          "tier": "jackpot",
+          "cash": 50,
+          "description": "The crown jewel of the pile"
+        }
+      ]
+    },
+    {
       "id": "grand",
       "name": "The Grand Wheel",
       "subtitle": "Fortune favours the bold",
@@ -427,38 +784,79 @@
         {
           "id": "broke-boi",
           "label": "Broke Boi",
+          "icon": "🐷",
           "weight": 36,
           "tier": "common",
           "chainWheelId": "broke-boi",
           "description": "Safe spins worth $2 – $10"
         },
         {
+          "id": "slots",
+          "label": "Loser Slots",
+          "icon": "🎰",
+          "weight": 14,
+          "tier": "rare",
+          "chainWheelId": "loser-slots",
+          "description": "Three pulls on the slot machine"
+        },
+        {
           "id": "vault",
           "label": "Prize Vault",
+          "icon": "💎",
           "weight": 22,
           "tier": "epic",
           "chainWheelId": "prize-vault",
           "description": "Spin for a real prize"
         },
         {
+          "id": "claw",
+          "label": "Loser Claw",
+          "icon": "🕹️",
+          "weight": 12,
+          "tier": "rare",
+          "chainWheelId": "loser-claw",
+          "description": "Three grabs in the claw machine"
+        },
+        {
           "id": "simp",
           "label": "Simp",
+          "icon": "💸",
           "weight": 18,
           "tier": "rare",
           "chainWheelId": "simp",
           "description": "Bigger stakes, real risk"
         },
         {
+          "id": "drop",
+          "label": "Simp Drop",
+          "icon": "🪙",
+          "weight": 10,
+          "tier": "epic",
+          "chainWheelId": "simp-drop",
+          "description": "Three coins down the board"
+        },
+        {
           "id": "dare",
           "label": "Streamer Dare",
+          "icon": "💋",
           "weight": 16,
           "tier": "rare",
           "chainWheelId": "dares",
           "description": "You choose the streamer's fate"
         },
         {
+          "id": "gifts",
+          "label": "Mystery Gifts",
+          "icon": "🎁",
+          "weight": 12,
+          "tier": "rare",
+          "chainWheelId": "mystery-gifts",
+          "description": "One gift, any prize"
+        },
+        {
           "id": "whale",
           "label": "Whale",
+          "icon": "👑",
           "weight": 8,
           "tier": "legendary",
           "chainWheelId": "whale",

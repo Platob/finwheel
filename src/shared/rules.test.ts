@@ -12,6 +12,7 @@ import {
   slotText,
   startTurn,
   type Turn,
+  type TurnStats,
 } from './rules.js';
 import { ConfigSchema, PrizeSchema, WheelSchema } from './schema.js';
 
@@ -369,5 +370,77 @@ describe('default config', () => {
       expect(p.cash).toBeGreaterThanOrEqual(2);
       expect(p.cash).toBeLessThanOrEqual(10);
     }
+  });
+  describe('mini-games', () => {
+    const wheel = (id: string) => config.wheels.find((w) => w.id === id)!;
+    const games = ['loser-slots', 'loser-claw', 'simp-drop', 'mystery-gifts'];
+
+    it('simulate between Broke Boi and Simp: more risk, more pay', () => {
+      const sim = (id: string) => simulateTurns(config, id, 20000, random)!;
+      const [broke, simp, slots, claw, drop, gifts] = ['broke-boi', 'simp', ...games].map(sim) as [
+        TurnStats,
+        TurnStats,
+        TurnStats,
+        TurnStats,
+        TurnStats,
+        TurnStats,
+      ];
+      expect(slots.bustRate).toBe(0);
+      expect(gifts.bustRate).toBe(0);
+      // One gift is a quick gamble worth a little less than three Broke Boi spins.
+      expect(gifts.averagePayout).toBeGreaterThan(8);
+      expect(gifts.averagePayout).toBeLessThan(broke.averagePayout);
+      expect(slots.averagePayout).toBeGreaterThan(broke.averagePayout);
+      expect(claw.averagePayout).toBeGreaterThan(slots.averagePayout);
+      expect(drop.averagePayout).toBeGreaterThan(claw.averagePayout);
+      expect(simp.averagePayout).toBeGreaterThan(drop.averagePayout);
+      expect(claw.bustRate).toBeGreaterThan(0);
+      expect(drop.bustRate).toBeGreaterThan(claw.bustRate);
+      expect(simp.bustRate).toBeGreaterThan(drop.bustRate);
+    });
+
+    it('pay cash in the Broke Boi to Simp range, with a ×2 Total or ×2 Next', () => {
+      for (const id of games) {
+        const prizes = wheel(id).prizes;
+        for (const p of prizes.filter((p) => p.cash > 0)) {
+          expect(p.cash).toBeGreaterThanOrEqual(2);
+          expect(p.cash).toBeLessThanOrEqual(50);
+        }
+        expect(
+          prizes.some((p) => p.nextMultiplier === 2),
+          id,
+        ).toBe(true);
+      }
+      expect(wheel('loser-claw').prizes.filter((p) => p.bust)).toHaveLength(1);
+      expect(wheel('loser-slots').prizes.some((p) => p.bust || p.multiplier < 1)).toBe(false);
+      expect(wheel('mystery-gifts').prizes.some((p) => p.bust || p.multiplier < 1)).toBe(false);
+    });
+
+    it('lay Simp Drop out like a plinko board: mirrored bins, big at the edges, likeliest in the middle', () => {
+      const bins = wheel('simp-drop').prizes;
+      const n = bins.length;
+      expect(n % 2).toBe(1);
+      const middle = (n - 1) / 2;
+      for (let i = 0; i < middle; i++) {
+        const [left, right] = [bins[i]!, bins[n - 1 - i]!];
+        expect([left.weight, left.cash, left.bust], `bin ${i}`).toEqual([
+          right.weight,
+          right.cash,
+          right.bust,
+        ]);
+        expect(bins[i + 1]!.weight).toBeGreaterThan(left.weight);
+      }
+      expect(bins.flatMap((p, i) => (p.bust ? [i] : []))).toEqual([0, n - 1]);
+      // Cash shrinks from the edges to the middle.
+      const cash = bins.filter((p) => p.cash > 0).map((p) => p.cash);
+      expect(cash).toEqual([50, 15, 5, 15, 50]);
+    });
+
+    it('are categories of The Grand Wheel, which still offers every earlier one', () => {
+      const chains = wheel('grand').prizes.map((p) => p.chainWheelId);
+      expect(chains).toEqual(
+        expect.arrayContaining([...games, 'broke-boi', 'prize-vault', 'simp', 'dares', 'whale']),
+      );
+    });
   });
 });

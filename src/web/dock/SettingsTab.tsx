@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { wheelForCommand } from '../../shared/chat-commands';
 import { MAX_HUB_PHOTOS, MAX_PHOTO_URL, PHOTO_URL, ROLES, THEMES } from '../../shared/constants';
 import type { Settings, ThemeId } from '../../shared/schema';
 import type { AppState, Notice } from '../../shared/types';
 import { pageToken } from '../common/socket';
 import { useDraft } from './draft';
 import type { Send } from './server';
-import { Field, NumberInput, Section, Toggle } from './ui';
+import { Field, GAME_INFO, NumberInput, Section, Toggle } from './ui';
 
 type Notify = (message: string, level?: Notice['level']) => void;
 
@@ -40,6 +41,17 @@ export function SettingsTab({ state, send, notify }: { state: AppState; send: Se
     </>
   );
 
+  /** The wheel whose own chat command is already `word` (see the Wheels tab). */
+  const takenBy = (word: string) => wheelForCommand(config.wheels, word)?.name ?? null;
+  const gameCommands = config.wheels.filter((w) => w.command);
+  const spinClash = takenBy(draft.twitch.spinCommand);
+  const keywordClash = takenBy(draft.raffle.keyword);
+  const problem = spinClash
+    ? `Spin command used by “${spinClash}”`
+    : keywordClash
+      ? `Raffle keyword used by “${keywordClash}”`
+      : null;
+
   const origin = location.origin;
   const token = pageToken();
   const otherTheme = THEMES.find((theme) => theme !== config.settings.overlay.theme) ?? 'casino';
@@ -64,7 +76,7 @@ export function SettingsTab({ state, send, notify }: { state: AppState; send: Se
               onInput={(e) => set((s) => (s.twitch.channel = e.currentTarget.value.trim().toLowerCase()))}
             />
           </Field>
-          <Field label="Spin command">
+          <Field label="Spin command" error={spinClash && `Used by the “${spinClash}” wheel`}>
             <input
               value={draft.twitch.spinCommand}
               onInput={(e) => set((s) => (s.twitch.spinCommand = e.currentTarget.value))}
@@ -104,6 +116,19 @@ export function SettingsTab({ state, send, notify }: { state: AppState; send: Se
           Moderators can type <kbd>{draft.twitch.spinCommand} @viewer [spins] [wheel-id]</kbd> and{' '}
           <kbd>!raffle open|close|draw</kbd>.
         </p>
+        {gameCommands.length > 0 && (
+          <p class="hint">
+            Game commands work the same way:{' '}
+            {gameCommands.map((w, i) => (
+              <span key={w.id}>
+                {i > 0 && ' '}
+                <kbd title={w.name}>
+                  {GAME_INFO[w.game].icon} {w.command}
+                </kbd>
+              </span>
+            ))}
+          </p>
+        )}
 
         <h3>Cheers</h3>
         <Toggle
@@ -249,7 +274,7 @@ export function SettingsTab({ state, send, notify }: { state: AppState; send: Se
 
       <Section title="Raffle">
         <div class="grid">
-          <Field label="Chat keyword">
+          <Field label="Chat keyword" error={keywordClash && `Used by the “${keywordClash}” wheel`}>
             <input
               value={draft.raffle.keyword}
               onInput={(e) => set((s) => (s.raffle.keyword = e.currentTarget.value))}
@@ -385,15 +410,21 @@ export function SettingsTab({ state, send, notify }: { state: AppState; send: Se
       </Section>
 
       <div class={`savebar${dirty ? ' is-dirty' : ''}`}>
-        <span class="muted small">
-          {stale ? 'Changed on the server while you edit' : dirty ? 'Unsaved changes' : 'All changes saved'}
+        <span class={`small ${problem && dirty ? 'bad' : 'muted'}`}>
+          {problem && dirty
+            ? problem
+            : stale
+              ? 'Changed on the server while you edit'
+              : dirty
+                ? 'Unsaved changes'
+                : 'All changes saved'}
         </span>
         <button class="btn btn--ghost btn--small" disabled={!dirty} onClick={reset}>
           Revert
         </button>
         <button
           class="btn btn--gold btn--small"
-          disabled={!dirty}
+          disabled={!dirty || problem !== null}
           onClick={() => {
             send({ type: 'config.save', settings: draft });
             saved();

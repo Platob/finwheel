@@ -126,7 +126,8 @@ try {
   const s0 = await state();
   const extra = opt.config ? JSON.parse(readFileSync(opt.config, 'utf8')) : {};
   const settings = structuredClone(s0.config.settings);
-  settings.spin = { ...settings.spin, durationMs: 2500, resultHoldMs: 60000, followUpHoldMs: 1200 };
+  // The follow-up hold outlasts the `result` capture, so a bonus spin never starts before it.
+  settings.spin = { ...settings.spin, durationMs: 2500, resultHoldMs: 60000, followUpHoldMs: 4500 };
   settings.overlay = { ...settings.overlay, sound: false };
   if (opt.photos.length) settings.overlay.hubPhotos = opt.photos;
   const merge = (a, b) => {
@@ -174,7 +175,7 @@ try {
       await page.waitForTimeout(900);
     } else if (name === 'total') {
       await command({ type: 'spin', wheelId, player: 'VelvetViper', spins: 3 });
-      await waitFor((s) => s.stage === 'total', 90000);
+      await waitFor((s) => s.stage === 'total', 180000);
       await page.waitForTimeout(2600);
     } else if (name === 'raffle') {
       await command({ type: 'raffle.clear' });

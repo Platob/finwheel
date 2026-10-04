@@ -167,6 +167,54 @@ function heart(ctx: CanvasRenderingContext2D, x: number, y: number, size: number
   ctx.closePath();
 }
 
+/** Zigzag crack down a heart of `size` (relative to its half size), from the top dip to the tip. */
+const CRACK = [
+  [0.02, -0.42],
+  [-0.14, -0.12],
+  [0.1, 0.12],
+  [-0.08, 0.42],
+  [0.02, 0.92],
+] as const;
+
+/** A heart broken in two along a zigzag (the bankrupt symbol), centred on (x, y). */
+function brokenHeart(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  colors: { fill: string; light: string; outline: string },
+) {
+  const s = size / 2;
+  for (const side of [-1, 1]) {
+    ctx.save();
+    ctx.translate(x + side * size * 0.06, y + size * 0.02);
+    ctx.rotate(side * 0.13);
+    // Keep this side of the crack.
+    ctx.beginPath();
+    for (const [cx, cy] of CRACK) ctx.lineTo(cx * s, cy * s);
+    ctx.lineTo(side * s * 2, s * 1.2);
+    ctx.lineTo(side * s * 2, -s * 1.2);
+    ctx.closePath();
+    ctx.clip();
+    heart(ctx, 0, 0, size);
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = size * 0.16;
+    ctx.strokeStyle = colors.outline;
+    ctx.stroke();
+    const g = ctx.createLinearGradient(0, -s, 0, s);
+    g.addColorStop(0, colors.light);
+    g.addColorStop(0.6, colors.fill);
+    ctx.fillStyle = g;
+    ctx.fill();
+    // Outline along the break.
+    ctx.beginPath();
+    for (const [cx, cy] of CRACK) ctx.lineTo(cx * s, cy * s);
+    ctx.lineWidth = size * 0.07;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
 // ── Static cabinet ───────────────────────────────────────────────────────
 
 /** Quilted diamonds with tiny studs, clipped to the current path. */
@@ -872,6 +920,18 @@ export function renderSymbol(
     return canvas;
   }
 
+  if (segment.bust) {
+    // Bankrupt: a broken heart, with the label on a tag underneath.
+    brokenHeart(ctx, c, c - r * 0.14, r * 1.02, {
+      fill: style.text,
+      light: mixColor(style.text, '#ffffff', 0.45),
+      outline: style.outline,
+    });
+    const fit = fitLabel(main, measurer(ctx, display), r * 1.7, r * 0.5, r * 0.46);
+    if (fit.size > 0) sticker(ctx, fit.lines.join(' '), c, c + r * 0.66, fit.size, display, colors);
+    return canvas;
+  }
+
   const measure = measurer(ctx, display);
   if (caption) {
     const capSize = r * 0.24;
@@ -978,6 +1038,49 @@ export function buildGlow(color: string, r: number): HTMLCanvasElement {
   ctx.shadowColor = 'transparent';
   ctx.lineWidth = r * 0.035;
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.stroke();
+  return canvas;
+}
+
+/**
+ * Neon frame around a reel (`w` × `h` canvas pixels, rounded by `r`) for the "hot" last reel; the
+ * sprite has `pad` pixels of glow on every side.
+ */
+export function buildReelGlow(
+  color: string,
+  w: number,
+  h: number,
+  r: number,
+  pad: number,
+): HTMLCanvasElement {
+  const canvas = createCanvas(w + pad * 2, h + pad * 2);
+  const ctx = canvas.getContext('2d')!;
+  // Light spilling inward from the edges, like the reel window is lit from its sides.
+  ctx.save();
+  roundRect(ctx, pad, pad, w, h, r);
+  ctx.clip();
+  for (const [x0, y0, x1, y1] of [
+    [pad, 0, pad + w * 0.3, 0],
+    [pad + w, 0, pad + w * 0.7, 0],
+  ] as const) {
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0, withAlpha(color, 0.55));
+    g.addColorStop(1, withAlpha(color, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(pad, pad, w, h);
+  }
+  ctx.restore();
+  roundRect(ctx, pad, pad, w, h, r);
+  ctx.lineJoin = 'round';
+  ctx.shadowColor = color;
+  ctx.shadowBlur = pad * 0.8;
+  ctx.lineWidth = pad * 0.42;
+  ctx.strokeStyle = color;
+  ctx.stroke();
+  ctx.stroke();
+  ctx.shadowColor = 'transparent';
+  ctx.lineWidth = pad * 0.14;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
   ctx.stroke();
   return canvas;
 }
