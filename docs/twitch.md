@@ -5,15 +5,15 @@
 In the dock: **Settings → Twitch chat → Channel** = your channel name → **Save settings**. The badge turns
 **connected** (reading chat needs no login). Try it in your chat:
 
-| Type in chat                  | What happens                                                        |
-| ----------------------------- | ------------------------------------------------------------------- |
-| `!spin`                       | You play the active wheel                                           |
-| `!spin @friend 5 high-roller` | Mods: friend plays 5 spins on High Roller (any order, all optional) |
-| `!raffle open`                | Mods: open the raffle (`!raffle close` stops entries)               |
-| `!join`                       | Anyone: enter the raffle (subscribers get 2 tickets)                |
-| `!raffle draw`                | Mods: draw a winner, who then spins The Grand Wheel                 |
+| Type in chat           | What happens                                                       |
+| ---------------------- | ------------------------------------------------------------------ |
+| `!spin`                | You play the active wheel                                          |
+| `!spin @friend 5 simp` | Mods: friend plays 5 spins on Simp Wheel (any order, all optional) |
+| `!raffle open`         | Mods: open the raffle (`!raffle close` stops entries)              |
+| `!join`                | Anyone: enter the raffle (subscribers get 2 tickets)               |
+| `!raffle draw`         | Mods: draw a winner, who then spins The Grand Wheel                |
 
-Wheel ids (shown in the dock's **Wheels** tab): `lucky-dollars`, `high-roller`, `diamond-table`, `grand`,
+Wheel ids (shown in the dock's **Wheels** tab): `broke-boi`, `simp`, `whale`, `grand`,
 `prize-vault`, `dares`. To let viewers type `!spin`, set **Who can spin** to _Everyone_ or _Subscribers_.
 
 <p align="center">

@@ -2,7 +2,7 @@
 /**
  * Screenshots the built overlay in given states, against a throwaway server and data folder.
  *
- *   npm run build && node scripts/snap.mjs --out shots idle result:high-roller total raffle
+ *   npm run build && node scripts/snap.mjs --out shots idle result:simp total raffle
  *
  * Scenarios: idle[:wheel] · spin[:wheel] · result[:wheel] · total[:wheel] · bank[:wheel] · raffle
  * Options:   --out DIR · --theme glam|casino · --size 1080 · --config file.json (wheels/settings

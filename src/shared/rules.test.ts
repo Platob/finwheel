@@ -298,9 +298,9 @@ describe('default config', () => {
   const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
 
   it('ships a risk ladder: higher stakes pay more on average but bust more often', () => {
-    const lucky = simulateTurns(config, 'lucky-dollars', 20000, random)!;
-    const high = simulateTurns(config, 'high-roller', 20000, random)!;
-    const diamond = simulateTurns(config, 'diamond-table', 20000, random)!;
+    const lucky = simulateTurns(config, 'broke-boi', 20000, random)!;
+    const high = simulateTurns(config, 'simp', 20000, random)!;
+    const diamond = simulateTurns(config, 'whale', 20000, random)!;
     expect(lucky.bustRate).toBe(0);
     expect(lucky.averagePayout).toBeGreaterThan(10);
     expect(high.averagePayout).toBeGreaterThan(lucky.averagePayout);
@@ -309,8 +309,8 @@ describe('default config', () => {
     expect(diamond.bustRate).toBeGreaterThan(high.bustRate);
   });
 
-  it('ships a ×2 Next slice on Lucky Dollars', () => {
-    const lucky = config.wheels.find((w) => w.id === 'lucky-dollars')!;
+  it('ships a ×2 Next slice on Broke Boi Wheel', () => {
+    const lucky = config.wheels.find((w) => w.id === 'broke-boi')!;
     expect(lucky.prizes.find((p) => p.id === 'x2b')).toMatchObject({
       label: '×2 Next',
       multiplier: 1,
@@ -342,8 +342,8 @@ describe('default config', () => {
     expect(simulateTurns(boosted, 'w', 20000, random, 3)!.maxPayout).toBe(40);
   });
 
-  it('keeps Lucky Dollars cash slices between $2 and $10', () => {
-    const lucky = config.wheels.find((w) => w.id === 'lucky-dollars')!;
+  it('keeps Broke Boi Wheel cash slices between $2 and $10', () => {
+    const lucky = config.wheels.find((w) => w.id === 'broke-boi')!;
     for (const p of lucky.prizes.filter((p) => p.cash > 0)) {
       expect(p.cash).toBeGreaterThanOrEqual(2);
       expect(p.cash).toBeLessThanOrEqual(10);

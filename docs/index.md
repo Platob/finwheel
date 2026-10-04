@@ -4,7 +4,7 @@ A prize wheel for OBS and Twitch: money games, prize categories and chat raffles
 transparent browser-source overlay and driven from an OBS dock.
 
 <div class="grid-shots" markdown>
-![Lucky Dollars wheel with amounts on every slice](images/overlay-wheel.jpg){ width="320" }
+![Broke Boi Wheel with amounts on every slice](images/overlay-wheel.jpg){ width="320" }
 ![Total winnings screen after a 3-spin game](images/overlay-total.jpg){ width="320" }
 ![Control dock](images/dock.jpg){ width="156" }
 </div>
@@ -14,8 +14,8 @@ transparent browser-source overlay and driven from an OBS dock.
 - **Money games.** Pick how many spins a player gets; every slice can add cash (`$5`), multiply the
   running total (`×2`), grant bonus spins or go **Bankrupt**. Once all spins have run, the overlay shows
   the **total winnings** with every spin listed.
-- **Risk ladder out of the box.** _Lucky Dollars_ ($2 – $10, no risk), _High Roller_ ($10 – $50, bankrupt
-  slices) and _Diamond Table_ ($50 – $500, high risk). The dock simulates each wheel so you know the
+- **Risk ladder out of the box.** _Broke Boi Wheel_ ($2 – $10, no risk), _Simp Wheel_ ($10 – $50, bankrupt
+  slices) and _Whale Wheel_ ($50 – $500, high risk). The dock simulates each wheel so you know the
   average payout, the bust rate and the best case before going live.
 - **Wheel categories.** A prize can chain into another wheel: _The Grand Wheel_ picks a category
   (money tables, _Prize Vault_, _Dare Wheel_) and the player keeps spinning there.

@@ -6,7 +6,7 @@ or scripts:
 ```bash
 curl -X POST http://localhost:4747/api/command \
   -H 'Content-Type: application/json' \
-  -d '{"type":"spin","player":"VelvetViper","spins":3,"wheelId":"lucky-dollars"}'
+  -d '{"type":"spin","player":"VelvetViper","spins":3,"wheelId":"broke-boi"}'
 ```
 
 Commands: `spin`, `spinNext`, `queue.add`, `queue.remove`, `queue.clear`, `wheel.select`,

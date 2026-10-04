@@ -166,7 +166,7 @@ export class TwitchBot extends EventEmitter<{ status: [] }> {
     if (command === twitch.spinCommand.toLowerCase()) {
       if (rank >= ROLE_RANK.moderator) {
         // Moderators pick the player, the number of spins and the wheel, in any order:
-        // !spin @viewer 5 high-roller
+        // !spin @viewer 5 simp
         const wheels = new Set(this.engine.getConfig().wheels.map((w) => w.id));
         let target = '';
         let spins: number | undefined;

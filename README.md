@@ -4,7 +4,7 @@ A classy casino-style prize wheel for OBS and Twitch: money games, prize categor
 rendered as a transparent browser-source overlay and driven from an OBS dock.
 
 <p align="center">
-  <img src="docs/images/overlay-wheel.jpg" width="320" alt="Lucky Dollars wheel with amounts on every slice" />
+  <img src="docs/images/overlay-wheel.jpg" width="320" alt="Broke Boi Wheel with amounts on every slice" />
   <img src="docs/images/overlay-total.jpg" width="320" alt="Total winnings screen after a 3-spin game" />
   <img src="docs/images/dock.jpg" width="156" alt="Control dock" />
 </p>
@@ -14,8 +14,8 @@ rendered as a transparent browser-source overlay and driven from an OBS dock.
 - **Money games.** Pick how many spins a player gets; every slice can add cash (`$5`), multiply the
   running total (`×2`), grant bonus spins or go **Bankrupt**. Once all spins have run, the overlay shows
   the **total winnings** with every spin listed.
-- **Risk ladder out of the box.** _Lucky Dollars_ ($2 – $10, no risk), _High Roller_ ($10 – $50, bankrupt
-  slices) and _Diamond Table_ ($50 – $500, high risk). The dock simulates each wheel so you know the
+- **Risk ladder out of the box.** _Broke Boi Wheel_ ($2 – $10, no risk), _Simp Wheel_ ($10 – $50, bankrupt
+  slices) and _Whale Wheel_ ($50 – $500, high risk). The dock simulates each wheel so you know the
   average payout, the bust rate and the best case before going live.
 - **Wheel categories.** A prize can chain into another wheel: _The Grand Wheel_ picks a category
   (money tables, _Prize Vault_, _Dare Wheel_) and the player keeps spinning there.
@@ -86,15 +86,15 @@ It opens floating: drag it into place. To play: pick a wheel, type a player, set
 In the dock: **Settings → Twitch chat → Channel** = your channel name → **Save settings**. The badge turns
 **connected** (reading chat needs no login). Try it in your chat:
 
-| Type in chat                  | What happens                                                        |
-| ----------------------------- | ------------------------------------------------------------------- |
-| `!spin`                       | You play the active wheel                                           |
-| `!spin @friend 5 high-roller` | Mods: friend plays 5 spins on High Roller (any order, all optional) |
-| `!raffle open`                | Mods: open the raffle (`!raffle close` stops entries)               |
-| `!join`                       | Anyone: enter the raffle (subscribers get 2 tickets)                |
-| `!raffle draw`                | Mods: draw a winner, who then spins The Grand Wheel                 |
+| Type in chat           | What happens                                                       |
+| ---------------------- | ------------------------------------------------------------------ |
+| `!spin`                | You play the active wheel                                          |
+| `!spin @friend 5 simp` | Mods: friend plays 5 spins on Simp Wheel (any order, all optional) |
+| `!raffle open`         | Mods: open the raffle (`!raffle close` stops entries)              |
+| `!join`                | Anyone: enter the raffle (subscribers get 2 tickets)               |
+| `!raffle draw`         | Mods: draw a winner, who then spins The Grand Wheel                |
 
-Wheel ids (shown in the dock's **Wheels** tab): `lucky-dollars`, `high-roller`, `diamond-table`, `grand`,
+Wheel ids (shown in the dock's **Wheels** tab): `broke-boi`, `simp`, `whale`, `grand`,
 `prize-vault`, `dares`. To let viewers type `!spin`, set **Who can spin** to _Everyone_ or _Subscribers_.
 
 <p align="center">
@@ -203,7 +203,7 @@ or scripts:
 ```bash
 curl -X POST http://localhost:4747/api/command \
   -H 'Content-Type: application/json' \
-  -d '{"type":"spin","player":"VelvetViper","spins":3,"wheelId":"lucky-dollars"}'
+  -d '{"type":"spin","player":"VelvetViper","spins":3,"wheelId":"broke-boi"}'
 ```
 
 Commands: `spin`, `spinNext`, `queue.add`, `queue.remove`, `queue.clear`, `wheel.select`,
