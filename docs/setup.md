@@ -30,7 +30,8 @@ In OBS: **Sources → + → Browser**, name it `FinWheel`, then set:
 | Width / Height            | `1080` / `1080`                  |
 | **Control audio via OBS** | ticked (wheel sounds go to OBS)  |
 
-The background stays transparent. Run a 3-spin test game and watch it play in OBS:
+The background stays transparent. Run a 3-spin test game on the active wheel (the Broke Boi Wheel on a new
+install) and watch it play in OBS:
 
 ```bash
 curl -X POST http://localhost:4747/api/command -H 'Content-Type: application/json' \
@@ -41,6 +42,9 @@ curl -X POST http://localhost:4747/api/command -H 'Content-Type: application/jso
 # Windows PowerShell
 Invoke-RestMethod -Method Post http://localhost:4747/api/command -ContentType 'application/json' -Body '{"type":"spin","player":"VelvetViper","spins":3}'
 ```
+
+Games are wheels too: add `"wheelId":"loser-slots"` to the JSON to play 3 pulls of the slot machine instead
+(every id is listed in [Default wheels](wheels.md#default-wheels)).
 
 <div class="grid-shots" markdown>
 
@@ -54,11 +58,12 @@ The overlay uses the glam look; to switch to the casino look or add your photo i
 ## 3. Add the control dock
 
 In OBS: **Docks → Custom Browser Docks…**, Dock Name `FinWheel`, URL `http://localhost:4747/dock/`, **Apply**.
-It opens floating: drag it into place. To play: pick a wheel, type a player, set the spins, press **Spin**.
+It opens floating: drag it into place. To play: pick a wheel or game, type a player, set the number of plays,
+press **Spin** (**Play** on a game).
 
 <div class="grid-shots" markdown>
 
-![Dock Play tab: wheel chips, player name, spins stepper and Spin button](images/setup-dock-play.jpg){ width="380" }
+![Dock Play tab: a chip for every wheel and game, player name, spins stepper and Spin button](images/setup-dock-play.jpg){ width="380" }
 
 </div>
 
