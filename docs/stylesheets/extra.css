@@ -19,9 +19,55 @@
   border-radius: 0.4rem;
 }
 
+/*
+ * Commands, ids and config keys in table cells (`!allornothing`, `spinsPerTurn`) wrap at their hyphens
+ * or not at all, instead of mid-word. A table too wide for a phone scrolls inside its own frame.
+ */
+.md-typeset td code {
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
 .md-typeset .grid-shots {
   display: flex;
   flex-wrap: wrap;
   gap: 0.8rem;
   justify-content: center;
+}
+
+/*
+ * A live wheel beside its facts (Wheels & prizes): the card on the left, the text on the right when
+ * the content column has room for both, the card above the text otherwise. Written as
+ * <div class="fw-wheel-doc" markdown> <div class="fw-live" data-wheels="…"></div> <div markdown>…</div> </div>.
+ */
+.md-typeset .fw-wheel-doc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.2rem;
+  margin: 1em 0 1.6em;
+}
+
+/*
+ * Sidebar layout: the text wraps under the card once it would be narrower than its basis (below about
+ * 33rem of content width). Side by side the card stays near its basis; stacked it fills the column up
+ * to a phone-sized card, centred.
+ */
+.md-typeset .fw-wheel-doc > .fw-live {
+  flex: 1 1 15rem;
+  max-width: 22rem;
+  margin: 0 auto;
+}
+
+.md-typeset .fw-wheel-doc > :not(.fw-live) {
+  flex: 999 1 17rem;
+  min-width: 0;
+}
+
+.md-typeset .fw-wheel-doc > :not(.fw-live) > :first-child {
+  margin-top: 0;
+}
+
+.md-typeset .fw-wheel-doc > :not(.fw-live) > :last-child {
+  margin-bottom: 0;
 }

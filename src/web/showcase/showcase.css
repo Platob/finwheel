@@ -1,5 +1,5 @@
-/* Live wheels and games on the documentation site. Everything is scoped under #fw-live. */
-#fw-live {
+/* Live wheels and games on the documentation site. Everything is scoped under the .fw-live mount points. */
+.fw-live {
   --card-bg:
     repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.045) 0 22px, transparent 22px 52px),
     radial-gradient(120% 90% at 50% 0%, #a8337f 0%, #7d1d60 45%, #5e1249 100%);
@@ -11,10 +11,17 @@
   --body-font: 'Fredoka', system-ui, sans-serif;
   --button-bg: linear-gradient(180deg, #f27fba, #d63a8a);
   --button-text: #ffffff;
+  /* Group headings sit on the page, not on a card: they follow Material's light and dark schemes. */
+  --group-color: var(--md-primary-fg-color, #c42d7c);
+  --group-rule: var(--md-accent-fg-color, #d9a520);
   margin: 1.2rem 0 2rem;
 }
 
-#fw-live[data-theme='casino'] {
+[data-md-color-scheme='slate'] .fw-live {
+  --group-color: #ff9fd0;
+}
+
+.fw-live[data-theme='casino'] {
   --card-bg:
     radial-gradient(ellipse at 50% 35%, rgba(19, 114, 87, 0.55), transparent 65%),
     radial-gradient(ellipse at 50% 120%, #020c09, transparent 60%), #06291f;
@@ -26,9 +33,20 @@
   --body-font: 'Inter', system-ui, sans-serif;
   --button-bg: linear-gradient(180deg, #f3dc8a, #b8892a);
   --button-text: #1b1405;
+  --group-color: #0e6b4f;
+  --group-rule: #d4af37;
 }
 
-#fw-live .fw-live-toolbar {
+[data-md-color-scheme='slate'] .fw-live[data-theme='casino'] {
+  --group-color: #f3dc8a;
+}
+
+/* An embed in the flow of a guide page: paragraph spacing, not the home page's. */
+.fw-live[data-wheels] {
+  margin: 1em 0;
+}
+
+.fw-live .fw-live-toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
@@ -36,12 +54,12 @@
   margin-bottom: 1rem;
 }
 
-#fw-live .fw-live-toggle {
+.fw-live .fw-live-toggle {
   display: inline-flex;
   gap: 0.3rem;
 }
 
-#fw-live .fw-live-chip {
+.fw-live .fw-live-chip {
   padding: 0.35rem 0.9rem;
   border: 1px solid var(--md-default-fg-color--lighter, rgba(0, 0, 0, 0.2));
   border-radius: 999px;
@@ -53,19 +71,73 @@
   cursor: pointer;
 }
 
-#fw-live .fw-live-chip[aria-pressed='true'] {
+.fw-live .fw-live-chip[aria-pressed='true'] {
   border-color: var(--md-accent-fg-color, #d9a520);
   background: var(--md-accent-fg-color, #d9a520);
   color: #1b1405;
 }
 
-#fw-live .fw-live-grid {
+.fw-live .fw-live-group {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 2rem 0 0.9rem;
+  font-family: var(--title-font);
+  font-size: 1.3rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--group-color);
+}
+
+.fw-live[data-theme='casino'] .fw-live-group {
+  font-weight: 700;
+}
+
+.fw-live .fw-live-group::before,
+.fw-live .fw-live-group::after {
+  content: '';
+  flex: 1;
+  min-width: 1rem;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, var(--group-rule));
+}
+
+.fw-live .fw-live-group::after {
+  background: linear-gradient(90deg, var(--group-rule), transparent);
+}
+
+.fw-live > .fw-live-block:first-child > .fw-live-group,
+.fw-live > .fw-live-toolbar + .fw-live-block > .fw-live-group {
+  margin-top: 0.4rem;
+}
+
+/* The full showcase: as many cards per row as fit. */
+.fw-live .fw-live-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
   gap: 1rem;
 }
 
-#fw-live .fw-live-wheel {
+/* Embeds keep card-sized columns (empty ones too), so a short row never stretches its cards. */
+.fw-live[data-wheels] .fw-live-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+}
+
+.fw-live[data-wheels] .fw-live-grid[data-count='1'] {
+  grid-template-columns: minmax(0, 20rem);
+  justify-content: center;
+}
+
+/* Beside a wheel's facts (.fw-wheel-doc, see docs/stylesheets/extra.css) the cards fill their column. */
+.fw-wheel-doc > .fw-live[data-wheels] .fw-live-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.fw-live .fw-live-wheel {
   display: flex;
   flex-direction: column;
   padding: 0.9rem 0.9rem 1rem;
@@ -78,11 +150,11 @@
   scroll-margin-top: 4rem;
 }
 
-#fw-live .fw-live-head {
+.fw-live .fw-live-head {
   text-align: center;
 }
 
-#fw-live .fw-live-name {
+.fw-live .fw-live-name {
   margin: 0;
   font-family: var(--title-font);
   font-size: 1.45rem;
@@ -96,21 +168,21 @@
   text-shadow: 0 0 0.6em rgba(255, 120, 190, 0.6);
 }
 
-#fw-live[data-theme='casino'] .fw-live-name {
+.fw-live[data-theme='casino'] .fw-live-name {
   font-weight: 700;
   -webkit-text-stroke: 0;
   color: var(--accent);
   text-shadow: 0 0.1em 0.3em rgba(0, 0, 0, 0.6);
 }
 
-#fw-live .fw-live-sub {
+.fw-live .fw-live-sub {
   margin: 0.2rem 0 0;
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--accent);
 }
 
-#fw-live .fw-live-tag {
+.fw-live .fw-live-tag {
   display: inline-block;
   margin: 0.35rem 0 0;
   padding: 0.12rem 0.65rem;
@@ -123,7 +195,7 @@
   color: var(--card-muted);
 }
 
-#fw-live .fw-live-tag code {
+.fw-live .fw-live-tag code {
   padding: 0;
   background: none;
   color: var(--accent);
@@ -131,7 +203,7 @@
   font-weight: 700;
 }
 
-#fw-live .fw-live-stage {
+.fw-live .fw-live-stage {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
@@ -140,20 +212,20 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-#fw-live .fw-live-canvas {
+.fw-live .fw-live-canvas {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-#fw-live .fw-live-foot {
+.fw-live .fw-live-foot {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   margin-top: 0.4rem;
 }
 
-#fw-live .fw-live-result {
+.fw-live .fw-live-result {
   flex: 1;
   min-height: 2.6em;
   margin: 0;
@@ -162,12 +234,12 @@
   color: var(--card-muted);
 }
 
-#fw-live .fw-live-result strong {
+.fw-live .fw-live-result strong {
   font-size: 0.95rem;
   color: #ffffff;
 }
 
-#fw-live .fw-live-spin {
+.fw-live .fw-live-spin {
   flex: none;
   padding: 0.45rem 1.2rem;
   border: 2px solid var(--card-border);
@@ -182,27 +254,59 @@
   transition: transform 120ms ease;
 }
 
-#fw-live .fw-live-spin:hover:not(:disabled) {
+.fw-live .fw-live-spin:hover:not(:disabled) {
   transform: translateY(-1px) scale(1.03);
 }
 
-#fw-live .fw-live-spin:disabled {
+.fw-live .fw-live-spin:disabled {
   opacity: 0.55;
   cursor: default;
 }
 
-#fw-live .fw-live-spin:focus-visible,
-#fw-live .fw-live-chip:focus-visible {
+.fw-live .fw-live-spin:focus-visible,
+.fw-live .fw-live-chip:focus-visible {
   outline: 2px solid var(--md-accent-fg-color, #d9a520);
   outline-offset: 2px;
 }
 
-#fw-live .fw-live-odds {
+.fw-live .fw-live-odds {
   margin: 0.5rem 0 0;
   font-size: 0.65rem;
   text-align: center;
   color: var(--card-muted);
   opacity: 0.85;
+}
+
+.fw-live .fw-live-more {
+  margin: 0.4rem 0 0;
+  font-size: 0.66rem;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.fw-live .fw-live-wheel a.fw-live-details {
+  border-radius: 0.3em;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  text-underline-offset: 0.2em;
+}
+
+.fw-live .fw-live-wheel a.fw-live-details::after {
+  content: ' \2192';
+}
+
+.fw-live .fw-live-wheel a.fw-live-details:hover,
+.fw-live .fw-live-wheel a.fw-live-details:focus-visible {
+  color: #ffffff;
+  text-decoration-color: currentColor;
+}
+
+.fw-live .fw-live-wheel a.fw-live-details:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .fw-live-fx {

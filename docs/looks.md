@@ -1,7 +1,12 @@
 # Looks & photos
 
 The overlay has two looks. The dock picks the look of every overlay; a URL option can force one on a single
-browser source. Both play the same games, sounds and results.
+browser source. Both play the same wheels, games, sounds and results: the look only changes the paint.
+
+Try them here: switch these two live cards between **Glam** and **Casino**, then tap one to play it.
+
+<div class="fw-live" data-toolbar data-wheels="broke-boi loser-slots" data-details="../wheels/"></div>
+<noscript>The live wheels need JavaScript.</noscript>
 
 ## Glam
 
@@ -10,11 +15,17 @@ pearl lights, and a gold heart pointer. Above the wheel: a crown, the wheel name
 [stat row](playing.md#stat-row-and-bank-badge) (**spins left**, **total**, **next spin**) and a status line. The
 hub shows the wheel name under a small crown. Wins throw pink confetti, hearts and `$` coins.
 
+The games get a deep pink cabinet or board with gold trim, a plum screen and pink neon, with the same white sticker
+lettering. The slot machine's coins are pink with a white `$`.
+
 ## Casino
 
 Gold rim with chasing marquee bulbs, emerald / bordeaux / onyx slices, Cinzel lettering, a compass-star hub and a
 ruby pointer. The wheel name and status sit on a plaque under the wheel; money games show the **Bank** badge top
 left. Wins throw gold confetti, coins and sparkles.
+
+The games get a bordeaux cabinet or board with gold trim, a near-black screen and a pale gold glow, lettered in
+cream Cinzel. The plinko board sits a little higher, clear of the plaque.
 
 <div class="grid-shots" markdown>
 
@@ -24,12 +35,18 @@ left. Wins throw gold confetti, coins and sparkles.
 
 </div>
 
-|               | Glam                                                                                      | Casino                                    |
-| ------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------- |
-| Wheel name    | Bubble title above the wheel, and in the hub                                              | Plaque under the wheel                    |
-| Money game    | Stat row: spins left, total, next spin                                                    | `Bank · Spin 2 of 3` badge, top left      |
-| Raffle badge  | Bottom right                                                                              | Top right                                 |
-| Slice colours | Pink cycle; gold `×N total`, lavender `×N next` ([more](wheels.md#how-money-slices-look)) | Emerald, bordeaux, onyx; coloured by tier |
+|               | Glam                                                                                      | Casino                                      |
+| ------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Wheel name    | Bubble title above the wheel, and in the hub                                              | Plaque under the wheel or game              |
+| Money game    | Stat row: spins left, total, next spin                                                    | `Bank · Spin 2 of 3` badge, top left        |
+| Raffle badge  | Bottom right                                                                              | Top right                                   |
+| Slice colours | Pink cycle; gold `×N total`, lavender `×N next` ([more](wheels.md#how-money-slices-look)) | Emerald, bordeaux, onyx; coloured by tier   |
+| Games         | Deep pink cabinet, gold trim, pink neon                                                   | Bordeaux cabinet, gold trim, pale gold glow |
+
+On a game, the stat row and the bank badge count its plays: **pulls left** and **next pull** on the slot machine,
+`Bank · Grab 2 of 3` on the claw machine, and so on. Each prize in a game (reel symbol, capsule, plinko bin, the
+card that rises out of a gift) has the colour of its slice in the current look. The gift boxes themselves are
+wrapped in the look's own papers, whatever is inside.
 
 ## Switch the look
 
@@ -40,7 +57,8 @@ left. Wins throw gold confetti, coins and sparkles.
   **Settings → OBS links** has this link ready for the look you are not using (_Overlay, always the Casino look_),
   with a **Copy** button.
 
-The [live wheels](index.md) on the home page have **Glam** / **Casino** buttons to compare them.
+The live wheels on this site ([home page](index.md), [Wheels & prizes](wheels.md) and above) have **Glam** /
+**Casino** buttons too. The choice applies to every card on the page and is remembered for your next visit.
 
 ## Centre photos
 
@@ -49,9 +67,18 @@ and stay upright while the wheel turns. Glam writes the wheel name over the phot
 of its compass star. With several photos, they take turns in list order and cross-fade every **Seconds per
 photo**.
 
+Three of the games use them too; with no photos, each keeps its own decoration:
+
+| Game          | Photos                                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------------------------- |
+| Slot machine  | Up to 6, as a bonus symbol on some reel cells, never the symbol that stops on the payline.                |
+| Claw machine  | A heart-shaped poster on the back wall, in place of the neon heart, changing every **Seconds per photo**. |
+| Plinko board  | Up to 12, in medallions in the two top corners, in place of the neon heart and `$` signs.                 |
+| Mystery gifts | None: the gifts keep their mystery.                                                                       |
+
 FinWheel ships with four default photos (`/hub/broke-boi.jpg`, `/hub/pathetic.jpg`, `/hub/pillow.jpg` and
 `/hub/catsuit.jpg`, from `src/web/public/hub/`). An install that already has saved settings gets them once after
-updating; remove any of them with **×** and they stay removed.
+updating ([how](configuration.md#updates)); remove any of them with **×** and they stay removed.
 
 ### Upload from the dock
 
@@ -81,7 +108,7 @@ it directly, so it must open the image itself, not a page around it.
 
 | What              | Limit                                                                           |
 | ----------------- | ------------------------------------------------------------------------------- |
-| Photos            | 12                                                                              |
+| Photos            | 12 (the slot machine uses the first 6)                                          |
 | Seconds per photo | 2 to 120 (default 8)                                                            |
 | Uploaded file     | 8 MB; JPEG, PNG, WebP or GIF, checked against the file content (SVG is refused) |
 | Photo URL         | 500 characters                                                                  |

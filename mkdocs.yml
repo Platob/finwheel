@@ -48,8 +48,15 @@ theme:
     - search.highlight
     - toc.follow
 
+# The live wheels (`npm run build:showcase` writes docs/live/): a page shows them wherever it has a
+# `.fw-live` mount point; pages without one load nothing else.
 extra_css:
   - stylesheets/extra.css
+  - live/assets/showcase.css
+
+extra_javascript:
+  - path: live/showcase.js
+    type: module
 
 markdown_extensions:
   - admonition
